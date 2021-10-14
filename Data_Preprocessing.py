@@ -80,13 +80,15 @@ def input_output(days, input_seq_size, output_seq_size):
 		y_time[:] = output_df.index
 		out_times.append(y_time)
 
-		input_start += output_seq_size 
-		output_start += output_seq_size
+		input_start += 1 
+		output_start += 1
 
 	x_input = np.array(x_input)
 	y_output = np.array(y_output)
 	x_input_times = np.array(in_times, dtype = 'datetime64[ns]')
 	y_output_times = np.array(out_times, dtype = 'datetime64[ns]')
+
+	print(x_input.shape)
 
 
 	X_train, X_test, y_train, y_test = train_test_split(x_input, y_output, test_size=0.1, random_state=28)
@@ -116,10 +118,10 @@ def input_output(days, input_seq_size, output_seq_size):
 train_data, test_data = input_output(days_df, input_seq_size=7, output_seq_size=1)
 
 # save data
-with open("./Data/processed_data/train_data.pkl", "wb") as trainset:
+with open(f"./Data/processed_data/train_data_168hr_in_24hr_out.pkl", "wb") as trainset:
 	dump(train_data, trainset)
 
-with open("./Data/processed_data/test_data.pkl", "wb") as testset:
+with open("./Data/processed_data/test_data_168hr_in_24hr_out.pkl", "wb") as testset:
 	dump(test_data, testset)
 
 
