@@ -38,46 +38,49 @@ days_df =[]
 for group in n2ex_da.groupby(n2ex_da.index.date):
     days_df.append(group[1])
 
+# remove days with any nan values
+idx = 0
+for d in range(len(days_df)):
+	if days_df[idx].isnull().values.any():
+		del days_df[idx] 
+		idx -= 1
+	idx += 1 
+
+ts_df = pd.concat(days_df)
+ts = ts_df.values
+
+dates = ts_df.index.values
+dates = np.array(dates, dtype = 'datetime64[ns]')
+
+
 
 # group days for input and output train/test data set
-def input_output(days, input_seq_size, output_seq_size):
+def input_output(ts, dates, input_seq_size, output_seq_size):
 	x_input, y_output, in_times, out_times  = [], [], [], []
 	input_start = 0
 	output_start = input_seq_size
 
-	while (input_start + input_seq_size + output_seq_size) < len(days):
+	while (output_start + output_seq_size) < len(ts):
 
-		x = np.empty((input_seq_size * 24, 1))
-		y = np.empty((output_seq_size * 24, 1))
+		x = np.empty((input_seq_size, 1))
+		y = np.empty((output_seq_size, 1))
 
-		x_time = np.empty(((input_seq_size * 24)), dtype = 'datetime64[ns]')
-		y_time = np.empty(((output_seq_size * 24)), dtype = 'datetime64[ns]')
+		x_time = np.empty(((input_seq_size)), dtype = 'datetime64[ns]')
+		y_time = np.empty(((output_seq_size)), dtype = 'datetime64[ns]')
 
 
 		input_end = input_start + input_seq_size
 		output_end = output_start + output_seq_size
 
-		#add condition to ommit any days with nan values
-		if (len(pd.concat(days[input_start:input_end])) != len(x)) or (np.isnan(pd.concat(days[input_start:input_end]).iloc[:,-1]).any() ==True):
-			input_start += input_seq_size 
-			output_start += input_seq_size
-			continue
-		elif (len(pd.concat(days[output_start:output_end])) != len(y)) or (np.isnan(pd.concat(days[output_start:output_end]).iloc[:,-1]).any() ==True):
-			input_start += output_seq_size
-			output_start += output_seq_size 
-			continue
+		input_seq = ts[input_start:input_end]
+		x_input.append(input_seq)
+		output_seq = ts[output_start:output_end]
+		y_output.append(output_seq)
+	
 
-		input_df = pd.concat(days[input_start:input_end])
-		output_df = pd.concat(days[output_start:output_end])
-
-		x[:] = np.expand_dims(input_df.iloc[:,-1], axis=-1)
-		x_input.append(x)
-		y[:] = np.expand_dims(output_df.iloc[:,-1], axis=-1)
-		y_output.append(y)
-
-		x_time[:] = input_df.index
+		x_time[:] = dates[input_start:input_end]
 		in_times.append(x_time)
-		y_time[:] = output_df.index
+		y_time[:] = dates[output_start:output_end]
 		out_times.append(y_time)
 
 		input_start += 1 
@@ -115,7 +118,7 @@ def input_output(days, input_seq_size, output_seq_size):
 
 
 
-train_data, test_data = input_output(days_df, input_seq_size=7, output_seq_size=1)
+train_data, test_data = input_output(ts, dates, input_seq_size=168, output_seq_size=24)
 
 # save data
 with open(f"./Data/processed_data/train_data_168hr_in_24hr_out.pkl", "wb") as trainset:
