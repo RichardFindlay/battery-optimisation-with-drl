@@ -47,23 +47,49 @@ for d in range(len(days_df)):
 	idx += 1 
 
 ts_df = pd.concat(days_df)
-ts = ts_df.values
+ts = ts_df['Price_(£)']
+ts = np.expand_dims(ts.values, axis=-1)
 
 dates = ts_df.index.values
 dates = np.array(dates, dtype = 'datetime64[ns]')
 
+# data engineering
+df_times = pd.DataFrame()
+df_times['hour'] = ts_df.index.hour 
+df_times['month'] = ts_df.index.month - 1
+df_times['year'] = ts_df.index.year
+
+
+# create sin / cos of input times
+times_out_hour_sin = np.expand_dims(np.sin(2*np.pi*df_times['hour']/np.max(df_times['hour'])), axis=-1)
+times_out_month_sin = np.expand_dims(np.sin(2*np.pi*df_times['month']/np.max(df_times['month'])), axis=-1)
+
+times_out_hour_cos = np.expand_dims(np.cos(2*np.pi*df_times['hour']/np.max(df_times['hour'])), axis=-1)
+times_out_month_cos = np.expand_dims(np.cos(2*np.pi*df_times['month']/np.max(df_times['month'])), axis=-1)
+
+times_out_year = np.expand_dims((df_times['year'].values - np.min(df_times['year'])) / (np.max(df_times['year']) - np.min(df_times['year'])), axis=-1)
+
+
+times_data = np.concatenate((times_out_hour_sin, times_out_hour_cos, times_out_month_sin, times_out_month_cos, times_out_year), axis=-1)
+
+# print(times_data.shape)
+print(ts.shape)
+
+# exit()
+
 
 
 # group days for input and output train/test data set
-def input_output(ts, dates, input_seq_size, output_seq_size):
-	x_input, y_output, in_times, out_times  = [], [], [], []
+def input_output(ts, times_data, dates, input_seq_size, output_seq_size):
+	x_input, x_times_data, y_output, in_times, out_times  = [], [], [], [], []
 	input_start = 0
 	output_start = input_seq_size
 
 	while (output_start + output_seq_size) < len(ts):
 
-		x = np.empty((input_seq_size, 1))
-		y = np.empty((output_seq_size, 1))
+		# x = np.empty((input_seq_size, 1))
+		# x2 = np.empty((input_seq_size, 5))
+		# y = np.empty((output_seq_size, 1))
 
 		x_time = np.empty(((input_seq_size)), dtype = 'datetime64[ns]')
 		y_time = np.empty(((output_seq_size)), dtype = 'datetime64[ns]')
@@ -74,6 +100,8 @@ def input_output(ts, dates, input_seq_size, output_seq_size):
 
 		input_seq = ts[input_start:input_end]
 		x_input.append(input_seq)
+		eng_times_data = times_data[input_start:input_end]
+		x_times_data.append(eng_times_data)
 		output_seq = ts[output_start:output_end]
 		y_output.append(output_seq)
 	
@@ -87,16 +115,18 @@ def input_output(ts, dates, input_seq_size, output_seq_size):
 		output_start += 1
 
 	x_input = np.array(x_input)
+	x_times_data = np.array(x_times_data)
 	y_output = np.array(y_output)
 	x_input_times = np.array(in_times, dtype = 'datetime64[ns]')
 	y_output_times = np.array(out_times, dtype = 'datetime64[ns]')
 
-	print(x_input.shape)
+	x_input = np.concatenate([x_input, x_times_data], axis=-1)
 
 
 	X_train, X_test, y_train, y_test = train_test_split(x_input, y_output, test_size=0.1, random_state=28)
 
 	X_train_times, X_test_times, y_train_times, y_test_times = train_test_split(x_input_times, y_output_times, test_size=0.1, random_state=28)
+
 
 	train_data = {
 		'X_train': X_train,
@@ -106,8 +136,8 @@ def input_output(ts, dates, input_seq_size, output_seq_size):
 	}
 
 	test_data = {
-		'X_train': X_test,
-		'y_train': y_test,
+		'X_test': X_test,
+		'y_test': y_test,
 		'X_test_times': X_test_times,
 		'y_test_times': y_test_times
 	}
@@ -118,13 +148,13 @@ def input_output(ts, dates, input_seq_size, output_seq_size):
 
 
 
-train_data, test_data = input_output(ts, dates, input_seq_size=168, output_seq_size=24)
+train_data, test_data = input_output(ts, times_data, dates, input_seq_size=336, output_seq_size=24)
 
 # save data
-with open(f"./Data/processed_data/train_data_168hr_in_24hr_out.pkl", "wb") as trainset:
+with open(f"./Data/processed_data/train_data_336hr_in_24hr_out.pkl", "wb") as trainset:
 	dump(train_data, trainset)
 
-with open("./Data/processed_data/test_data_168hr_in_24hr_out.pkl", "wb") as testset:
+with open("./Data/processed_data/test_data_336hr_in_24hr_out.pkl", "wb") as testset:
 	dump(test_data, testset)
 
 
