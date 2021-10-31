@@ -149,12 +149,12 @@ class Battery(gym.Env):
 		self.num_actions = env_settings['num_actions']
 		self.ep_len = env_settings['num_episodes']
 		self.standby_loss = env_settings['standby_loss']
+		self.torch_file = env_settings['torch_model']
 		self.soc_z = 0.5								# intial state of charge
 		self.charging_eff = None						# charging efficiency
 		self.dis_charging_eff = None					# dis-charging efficiency
 		self.dod = None									# depth of dis-charge
 
-		
 		# define parameter limits
 		limits = np.array([
 			[-self.p_r, self.p_r],	# battery energy
@@ -174,7 +174,16 @@ class Battery(gym.Env):
 		# intialise degradation class
 		self.batt_deg = BatteryDegradation(self.cr * 1000)
 
-	def _next_soc(soc_t, efficiency, action, standby_loss):
+		# load DA Price Predictor Pytorch Model
+		if os.path.isfile(file_name):
+			self.model = LSTMCNNModel()
+			self.model.load_state_dict(torch.load(self.torch_file, map_location=torch.device('cpu')))
+			self.model.eval()
+		else:
+			print('Pytorch model not found')
+			exit()
+
+	def _next_soc(self, soc_t, efficiency, action, standby_loss):
 		e_ess = self.cr / 360
 		if self.pr < 0:
 			next_soc = soc_t - (1/e_ess) * efficiency * (action)  
@@ -184,6 +193,8 @@ class Battery(gym.Env):
 			next_soc = soc_t - (1/e_ess) * (standby_loss) 
 		return next_soc
 
+	def _get_da_prices(self):
+		
 
 
 
@@ -253,6 +264,8 @@ env_settings = {
     'battery_price': 3,			# battery CAPEX (£/kWh)
     'num_actions': 6,			# splits charge/discharge MWs relative to rated power
     'num_episodes': 1000,		# number of episodes 
+    'torch_model': './Data/processed_data/test_data_336hr_in_24hr_out.pkl' # relevant to current file dir
+
 }
 
 

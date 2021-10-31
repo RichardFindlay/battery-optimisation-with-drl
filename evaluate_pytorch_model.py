@@ -32,14 +32,29 @@ inputs = torch.tensor(inputs, dtype=torch.float64)
 print(test_data['X_test'].shape)
 # exit()
 
-prediction = model(inputs.float())
-exit()
 
 
-with torch.no_grad():
-	for X in test_data['X_test']:
-		# a = np.expand_dims(X,axis=0)
-		x = torch.tensor(np.expand_dims(X,axis=0), dtype=torch.float64)
-		prediction = model(x.float())
-		loss += loss_fn(prediction, y.float())
-	print(f'loss: {loss}')
+with torch.no_grad(): 
+	prediction = model(inputs.float())
+
+
+y_true = test_data['y_test']
+
+
+idx = 7400
+plt.plot(np.squeeze(prediction[idx]), label="pred")
+plt.plot(np.squeeze(y_true[idx,:,0]), label="true")
+plt.legend()
+plt.show()
+
+
+
+
+
+# with torch.no_grad():
+# 	for X in test_data['X_test']:
+# 		# a = np.expand_dims(X,axis=0)
+# 		x = torch.tensor(np.expand_dims(X,axis=0), dtype=torch.float64)
+# 		prediction = model(x.float())
+# 		loss += loss_fn(prediction, y.float())
+# 	print(f'loss: {loss}')
