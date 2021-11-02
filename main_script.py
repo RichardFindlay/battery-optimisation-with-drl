@@ -36,7 +36,7 @@ class Battery(gym.Env):
 		self.ts = 0 									# timestep within each episode
 		self.ts_len = 168								# max timestep length
 		self.ep = 0   									# episode increment
-		self.ep_pwr = 0     							# total absoluete power per each episode
+		self.ep_pwr = []     							# total absolute power per each episode
 		self.kwh_cost = 0    							# battery cost per kwh
 
 		# define parameter limits
@@ -98,7 +98,7 @@ class Battery(gym.Env):
 		with torch.no_grad(): 
 			predictions = model(input_seq.float())
 		
-		return tuple(predictions)
+		return predictions
 
 
 	def _degrade_coeff(self):
@@ -109,9 +109,8 @@ class Battery(gym.Env):
 	def step(self, state, action):
 
 		# collect current vars from state space
-		current_soc = state[0]
-		current_price = state[1]
-		da_prices = state[2]
+		da_prices = state[0]
+		current_soc = state[-1]
 
 		# convert action to kW 
 		action_kw = (action * self.pr)
@@ -137,11 +136,20 @@ class Battery(gym.Env):
 		# reward function for current timestep
 		ts_reward =  (da_prices[self.ts] * (action_kw / self.pr)) * (self.alpha_d * (abs(action_kw) / self.pr))
 
+		# collect power charge & discharge for episode
+		self.ep_pwr.append(action_kw)
 
-		
+		# update observations
+		obervations = (tuple(da_prices),  next_soc)
+
+		if self.ts == self.ts_len:
+			done = True
 
 
-		return self.observation, reward, done
+		return observation, reward, done
+
+
+
 
 
 
@@ -149,12 +157,18 @@ class Battery(gym.Env):
 
 
 	def reset(self):
+		# increment epidsodes
 		self.ep += 1
+
+		# update degrade co-efficient 
+		self._degrade_coeff(self)
+
+		# reset vars
 		self.ts = 0
 		self.prev_action = None
 
-
 		self.observation = np.array([])
+
 
 
 		return self.observation
