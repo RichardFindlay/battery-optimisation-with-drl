@@ -7,6 +7,7 @@ import numpy as np
 from pickle import load
 import matplotlib.pyplot as plt
 
+
 from DA_ElectricityPrice import LSTMCNNModel
 
 # load model
@@ -29,21 +30,26 @@ loss = 0
 inputs = np.moveaxis(test_data['X_test'], -1, 1)
 
 inputs = torch.tensor(inputs, dtype=torch.float64)
-print(test_data['X_test'].shape)
-# exit()
-
 
 
 with torch.no_grad(): 
 	prediction = model(inputs.float())
 
 
+
 y_true = test_data['y_test']
 
+print(test_data['X_test_times'][502])
+print('*********************************')
+print(test_data['y_test_times'][502])
+print(test_data['X_test'].shape)
+print(y_true.shape)
+print(prediction.shape)
 
-idx = 7400
-plt.plot(np.squeeze(prediction[idx]), label="pred")
-plt.plot(np.squeeze(y_true[idx,:,0]), label="true")
+
+idx = 7500
+plt.plot(np.squeeze(prediction[idx:idx+7]).flatten(), label="pred")
+plt.plot(np.squeeze(y_true[idx:idx+7,:,0]).flatten(), label="true")
 plt.legend()
 plt.show()
 
