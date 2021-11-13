@@ -34,8 +34,6 @@ epsilon = 1.0
 
 
 env = Battery(env_settings)
-print(env.action_space)
-print(env.observation_space.shape)
 state_size = env.observation_space.shape[0]
 action_size = len(env.action_space)
 seed = 100
@@ -48,7 +46,7 @@ tau = 1e-3
 update = 4
 
 
-dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, batch_size, gamma, tau, update, seed)
+dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed)
 scores= [] #list of rewards from each episode
 
 
@@ -62,12 +60,9 @@ for ep in range(n_episodes):
 	for step in range(time_range):
 		print(f'step: {step}') 
 		action = dqn_agent.action(cur_state, epsilon)
-		new_state, reward, done, _ = env.step(action)
+		new_state, reward, done = env.step(cur_state, action)
 
-		dqn_agent.step(cur_state, action, reward, new_state, done)
-
-		dqn_agent.replay()
-		dqn_agent.target_train()
+		dqn_agent.step(cur_state, action, reward, new_state, update, batch_size, gamma, done)
 
 		cur_state = new_state
 		episode_rew += reward 

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import numpy as np
 from collections import namedtuple, deque 
 import random
 
@@ -20,7 +21,7 @@ class QNet(nn.Module):
 	def forward(self, states):
 		""" map state values to action values """
 		x = F.relu(self.dense1(states))
-		x = F.relue(self.dense2(x))
+		x = F.relu(self.dense2(x))
 		return self.dense3(x)
 
 # replay buffer object
@@ -54,7 +55,7 @@ class Replay():
 
 # DQN Agent
 class DQN_Agent():
-	def __init__(self, state_size, action_size, learning_rate, buffer_size, batch_size, gamma, tau, update, seed):
+	def __init__(self, state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed):
 		self.state_size = state_size
 		self.action_size = action_size
 
@@ -69,26 +70,26 @@ class DQN_Agent():
 		self.memory = Replay(action_size, buffer_size, batch_size, seed)
 		self.t_step = 0
 
-	def step(self, state, action, reward, next_step, done):
+	def step(self, state, action, reward, next_step, update, batch_size, gamma, done):
 
 		# save expereince in model
 		self.memory.add(state, action, reward, next_step, done)
 
 		# learn every 'x' time-steps
-		self.t_step = (self.t_step+1) % '__UPDATE__'
+		self.t_step = (self.t_step+1) % update
 
 		if self.t_step == 0:
 			if len(self.memory) > batch_size:
 				experience = self.memory.sample()
-				self.learn(experience, GAMMA)
+				self.learn(experience, gamma)
 
 
 	def action(self, state, epsilion = 0):
 		""" return action for given state given current policy """
-		state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+		state = torch.from_numpy(state).float().to(device)
 		self.qnet.eval()
 
-		with troch.no_grad():
+		with torch.no_grad():
 			action_values = self.qnet(state)
 
 		self.qnet.train()
@@ -101,7 +102,7 @@ class DQN_Agent():
 
 
 	def learn(self, experiences, gamma):
-		states, actions, rewards, next_state, dones = experiences
+		states, actions, rewards, next_states, dones = experiences
 
 		criterion = torch.nn.MSELoss()
 
@@ -114,7 +115,7 @@ class DQN_Agent():
 		predicted_targets = self.qnet(next_states).gather(1,actions)
 
 		with torch.no_grad():
-			laebls_next = self.qnet_target(next_states).detach().max(1)[0].unsqueeze(1)
+			labels_next = self.qnet_target(next_states).detach()
 
 		labels = rewards + (gamma * labels_next * (1-dones))
 

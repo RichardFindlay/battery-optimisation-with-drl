@@ -31,7 +31,7 @@ class Battery(gym.Env):
 		self.train_data_path = env_settings['train_data_path']
 		self.test_data_path = env_settings['test_data_path']
 		self.alpha_d = 0    							# degradation coefficient
-		self.soc_z = 0.5								# intial state of charge
+		self.soc = 0.5								# intial state of charge
 		self.charging_eff = None						# charging efficiency
 		self.dis_charging_eff = None					# dis-charging efficiency
 		self.dod = None									# depth of dis-charge
@@ -41,6 +41,9 @@ class Battery(gym.Env):
 		self.ep = 0   									# episode increment
 		self.ep_pwr = []     							# total absolute power per each episode
 		self.kwh_cost = 0    							# battery cost per kwh
+		self.ep_start_kWh = 0     						# episode start charge
+		self.ep_end_kWh = 0     						# episode end charge
+		self.kWh_cost = 104.4     						# battery cost per kWh
 
 		# define parameter limits
 		limits = np.array([
@@ -52,9 +55,11 @@ class Battery(gym.Env):
 			[-np.inf, np.inf]		# reward function
 		])
 
-		self.observation_space = gym.spaces.Box(
-			low = limits[:,0],
-			high = limits[:,1])
+		# self.observation_space = gym.spaces.Box(
+		# 	low = limits[:,0],
+		# 	high = limits[:,1])
+
+		self.observation_space = np.append(np.zeros(24), self.soc)
 
 		self.action_space = np.linspace(-1, 1, num = self.num_actions , endpoint = True)
 
@@ -95,25 +100,31 @@ class Battery(gym.Env):
 	def _get_da_prices(self, input_seq):
 		# (samples, channels, input_seq_len)
 
+		input_seq = np.expand_dims(input_seq, axis=0)
 		input_seq = np.moveaxis(input_seq, -1, 1)
 		input_seq = torch.tensor(input_seq, dtype=torch.float64)
 
 		with torch.no_grad(): 
-			predictions = model(input_seq.float())
+			predictions = self.model(input_seq.float())
 		
 		return predictions
 
 
 	def _degrade_coeff(self):
 
-		self.alpha_d = ((start_cap - end_cap) / np.sum(self.ep_pwr)) * self.kWh_cost
+		self.alpha_d = ((self.ep_start_kWh - self.ep_end_kWh) / np.sum(self.ep_pwr)) * self.kWh_cost
 		
 
 	def step(self, state, action):
 
 		# collect current vars from state space
-		da_prices = state[0]
+		da_prices = state[:24]
 		current_soc = state[-1]
+		done = False
+
+		# store episode start capacity 
+		if self.ts == 0:
+			self.ep_start_kWh = current_soc
 
 		# convert action to kW 
 		action_kw = (action * self.pr)
@@ -134,7 +145,7 @@ class Battery(gym.Env):
 		next_soc = self._next_soc(current_soc, efficiency, action_kwh, self.standby_loss)
 
 		# get t+1 price, return (sample, 24hr, 1)
-		da_prices = self._get_da_prices(self.input_prices[self.ep + self.ts])
+		da_prices = self._get_da_prices(self.input_prices['X_train'][self.ep + self.ts])
 
 		# reward function for current timestep
 		ts_reward =  (da_prices[self.ts] * (action_kw / self.pr)) * (self.alpha_d * (abs(action_kw) / self.pr))
@@ -143,13 +154,15 @@ class Battery(gym.Env):
 		self.ep_pwr.append(action_kw)
 
 		# update observations
-		obervations = (tuple(da_prices),  next_soc)
+		observations = np.append(da_prices,  next_soc)
 
 		if self.ts == self.ts_len:
+			self.ep_end_kWh = next_soc
 			done = True
 
+		self.soc = next_soc
 
-		return observation, reward, done
+		return observations, ts_reward, done
 
 
 
@@ -164,11 +177,18 @@ class Battery(gym.Env):
 		self.ts = 0
 		self.prev_action = None
 
-		self.observation = np.array([])
+		self.da_prices = np.zeros((24))
+
+		print(self.da_prices.shape)
+
+
+		observations = np.append(self.da_prices, self.soc)
+
+		print(observations.shape)
 
 
 
-		return self.observation
+		return observations
 
 
 
