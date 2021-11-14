@@ -106,6 +106,8 @@ class Battery(gym.Env):
 
 		with torch.no_grad(): 
 			predictions = self.model(input_seq.float())
+
+		predictions = torch.squeeze(predictions)
 		
 		return predictions
 
@@ -146,6 +148,9 @@ class Battery(gym.Env):
 
 		# get t+1 price, return (sample, 24hr, 1)
 		da_prices = self._get_da_prices(self.input_prices['X_train'][self.ep + self.ts])
+
+		print('rewardzzzzz')
+		print(da_prices.shape)
 
 		# reward function for current timestep
 		ts_reward =  (da_prices[self.ts] * (action_kw / self.pr)) * (self.alpha_d * (abs(action_kw) / self.pr))

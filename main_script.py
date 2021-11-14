@@ -31,6 +31,8 @@ time_range = 168
 
 gamma = 1.0
 epsilon = 1.0
+epsilon_end = 0.01
+epsilon_decay = 0.996
 
 
 env = Battery(env_settings)
@@ -62,7 +64,9 @@ for ep in range(n_episodes):
 		action = dqn_agent.action(cur_state, epsilon)
 		new_state, reward, done = env.step(cur_state, action)
 
-		dqn_agent.step(cur_state, action, reward, new_state, update, batch_size, gamma, done)
+		print('check')
+		print(reward.shape)
+		dqn_agent.step(cur_state, action, reward, new_state, update, batch_size, gamma, tau, done)
 
 		cur_state = new_state
 		episode_rew += reward 
@@ -72,7 +76,7 @@ for ep in range(n_episodes):
 
 	scores.append(episode_rew)
 	# epsilon = epsilon - (2/episodes) if epsilon > 0.01 else 0.01
-	epsilon = max(eps*eps_decay,eps_end)
+	epsilon = max(epsilon*epsilon_decay, epsilon_end)
 
 	print("Episode:{}\n Reward:{}\n Epsilon:{}".format(ep, episode_rew, epsilon))
 

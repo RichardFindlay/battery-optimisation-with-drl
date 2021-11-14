@@ -70,7 +70,7 @@ class DQN_Agent():
 		self.memory = Replay(action_size, buffer_size, batch_size, seed)
 		self.t_step = 0
 
-	def step(self, state, action, reward, next_step, update, batch_size, gamma, done):
+	def step(self, state, action, reward, next_step, update, batch_size, gamma, tau, done):
 
 		# save expereince in model
 		self.memory.add(state, action, reward, next_step, done)
@@ -81,7 +81,7 @@ class DQN_Agent():
 		if self.t_step == 0:
 			if len(self.memory) > batch_size:
 				experience = self.memory.sample()
-				self.learn(experience, gamma)
+				self.learn(experience, gamma, tau)
 
 
 	def action(self, state, epsilion = 0):
@@ -101,7 +101,7 @@ class DQN_Agent():
 			return random.choice(np.arange(self.action_size))
 
 
-	def learn(self, experiences, gamma):
+	def learn(self, experiences, gamma, tau):
 		states, actions, rewards, next_states, dones = experiences
 
 		criterion = torch.nn.MSELoss()
@@ -115,7 +115,7 @@ class DQN_Agent():
 		predicted_targets = self.qnet(next_states).gather(1,actions)
 
 		with torch.no_grad():
-			labels_next = self.qnet_target(next_states).detach()
+			labels_next = self.qnet_target(next_states).detach().max(1)[0].unsqueeze(1)
 
 		labels = rewards + (gamma * labels_next * (1-dones))
 
@@ -128,13 +128,13 @@ class DQN_Agent():
 		self.soft_update(self.qnet, self.qnet_target, tau)
 
 
-	def soft_updated(self, local_model, target_model, tau):
+	def soft_update(self, local_model, target_model, tau):
 
 		"""Soft update model parameters.
         θ_target = τ*θ_local + (1 - τ)*θ_target """
 
 		for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
-			target.data.copy_(tau * local_param.data + (1 - tau) * target_param.data)
+			target_param.data.copy_(tau * local_param.data + (1 - tau) * target_param.data)
 
 
 
