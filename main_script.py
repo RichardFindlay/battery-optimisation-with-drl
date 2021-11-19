@@ -1,4 +1,5 @@
 # battery storage optmisation with Reinforcement Learning
+import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -12,8 +13,8 @@ from DQN_pytorch import DQN_Agent
 
 # declare environment dictionary
 env_settings = {
-	'battery_capacity': 10,		# rated capacity of battery (kWh)
-    'battery_energy': 10,		# rated power of battery (kW)
+	'battery_capacity': 4000,	# rated capacity of battery (kWh)
+    'battery_energy': 2000,		# rated power of battery (kW)
     'battery_price': 3,			# battery CAPEX (£/kWh)
     'num_actions': 5,			# splits charge/discharge MWs relative to rated power
     'standby_loss': 0.98,		# standby loss for battery when idle
@@ -21,12 +22,12 @@ env_settings = {
     'train': True,				# Boolean to determine whether train or test state
     'train_data_path': './Data/processed_data/train_data_336hr_in_24hr_out.pkl', # Path to trian data
     'test_data_path': './Data/processed_data/test_data_336hr_in_24hr_out.pkl',	 # Path to test data
-    'torch_model': './Models/da_price_prediction_336hr_in_24hr_out_model.pt'		 # relevant to current file dir
+    'torch_model': './Models/da_price_prediction_336hr_in_24hr_out_model.pt'	 # relevant to current file dir
 }
 
 
 
-n_episodes = 200
+n_episodes = 20 # max 67925
 time_range = 168
 
 gamma = 1.0
@@ -60,12 +61,10 @@ for ep in range(n_episodes):
 	print(f'episode: {ep}') 
 
 	for step in range(time_range):
-		print(f'step: {step}') 
+		# print(f'step: {step}') 
 		action = dqn_agent.action(cur_state, epsilon)
 		new_state, reward, done = env.step(cur_state, action)
 
-		print('check')
-		print(reward.shape)
 		dqn_agent.step(cur_state, action, reward, new_state, update, batch_size, gamma, tau, done)
 
 		cur_state = new_state

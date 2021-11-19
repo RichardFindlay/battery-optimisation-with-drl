@@ -44,6 +44,8 @@ class Battery(gym.Env):
 		self.ep_start_kWh = 0     						# episode start charge
 		self.ep_end_kWh = 0     						# episode end charge
 		self.kWh_cost = 104.4     						# battery cost per kWh
+		self.price_ref = 0 	 							# counter to keep track of da price index
+		self.input_seq_size = 168
 
 		# define parameter limits
 		limits = np.array([
@@ -113,6 +115,13 @@ class Battery(gym.Env):
 
 
 	def _degrade_coeff(self):
+		print('*********************************************')
+		print('degrade')
+		print(self.ep_start_kWh)
+		print(self.ep_end_kWh)
+		print(np.sum(self.ep_pwr))
+		print(self.kWh_cost)
+		print('*********************************************')
 
 		self.alpha_d = ((self.ep_start_kWh - self.ep_end_kWh) / np.sum(self.ep_pwr)) * self.kWh_cost
 		
@@ -127,6 +136,13 @@ class Battery(gym.Env):
 		# store episode start capacity 
 		if self.ts == 0:
 			self.ep_start_kWh = current_soc
+			# get prices for next episode length
+			self.ep_prices = []
+			for idx in range((self.ts_len//24) + 1):
+				self.ep_prices.append(self._get_da_prices(self.input_prices['X_train'][self.ep + self.price_ref]).numpy())
+				self.price_ref += 1
+			# combine arrays to create price timeseries episode length
+			self.ep_prices = np.concatenate(self.ep_prices)
 
 		# convert action to kW 
 		action_kw = (action * self.pr)
@@ -147,25 +163,29 @@ class Battery(gym.Env):
 		next_soc = self._next_soc(current_soc, efficiency, action_kwh, self.standby_loss)
 
 		# get t+1 price, return (sample, 24hr, 1)
-		da_prices = self._get_da_prices(self.input_prices['X_train'][self.ep + self.ts])
-
-		print('rewardzzzzz')
-		print(da_prices.shape)
+		# da_prices = self._get_da_prices(self.input_prices['X_train'][self.ep + self.ts])
 
 		# reward function for current timestep
-		ts_reward =  (da_prices[self.ts] * (action_kw / self.pr)) * (self.alpha_d * (abs(action_kw) / self.pr))
+		ts_reward =  (self.ep_prices[self.ts] * (action_kw / self.pr)) * (self.alpha_d * (abs(action_kw) / self.pr))
+
+
+		print(self.ep_prices[self.ts])
+		print(self.alpha_d)
 
 		# collect power charge & discharge for episode
 		self.ep_pwr.append(action_kw)
 
 		# update observations
-		observations = np.append(da_prices,  next_soc)
+		observations = np.append(self.ep_prices[self.ts:self.ts+24],  next_soc)
 
 		if self.ts == self.ts_len:
 			self.ep_end_kWh = next_soc
 			done = True
 
 		self.soc = next_soc
+
+		# increment timestep
+		self.ts += 1 
 
 		return observations, ts_reward, done
 
