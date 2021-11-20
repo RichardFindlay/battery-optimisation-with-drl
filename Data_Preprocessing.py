@@ -33,6 +33,11 @@ n2ex_da['Price_(£)'].clip(lower=lower, upper=upper, inplace=True)
 scaler = MinMaxScaler()
 n2ex_da[['Price_(£)']] = scaler.fit_transform(n2ex_da[['Price_(£)']])
 
+# save scaaler for inverse transform
+with open(f"./Data/processed_data/da_price_scaler.pkl", "wb") as scaler_store:
+	dump(scaler, scaler_store)
+
+
 # split data into days i
 days_df =[]
 for group in n2ex_da.groupby(n2ex_da.index.date):
@@ -142,6 +147,8 @@ def input_output(ts, times_data, dates, input_seq_size, output_seq_size):
 		'y_test_times': y_test_times
 	}
 
+	print(*[f'{key}: {train_data[key].shape}' for key in train_data.keys()], sep='\n')
+	print(*[f'{key}: {test_data[key].shape}' for key in test_data.keys()], sep='\n')
 
 	return train_data, test_data
 

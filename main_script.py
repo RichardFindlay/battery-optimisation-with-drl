@@ -20,6 +20,7 @@ env_settings = {
     'standby_loss': 0.98,		# standby loss for battery when idle
     'num_episodes': 1000,		# number of episodes 
     'train': True,				# Boolean to determine whether train or test state
+    'scaler_transform_path': './Data/processed_data/da_price_scaler.pkl',				
     'train_data_path': './Data/processed_data/train_data_336hr_in_24hr_out.pkl', # Path to trian data
     'test_data_path': './Data/processed_data/test_data_336hr_in_24hr_out.pkl',	 # Path to test data
     'torch_model': './Models/da_price_prediction_336hr_in_24hr_out_model.pt'	 # relevant to current file dir

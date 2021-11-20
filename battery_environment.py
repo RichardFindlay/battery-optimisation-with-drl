@@ -30,6 +30,7 @@ class Battery(gym.Env):
 		self.train = env_settings['train']
 		self.train_data_path = env_settings['train_data_path']
 		self.test_data_path = env_settings['test_data_path']
+		self.scaler_transform_path = env_settings['scaler_transform_path']
 		self.alpha_d = 0    							# degradation coefficient
 		self.soc = 0.5								# intial state of charge
 		self.charging_eff = None						# charging efficiency
@@ -39,13 +40,14 @@ class Battery(gym.Env):
 		self.ts = 0 									# timestep within each episode
 		self.ts_len = 168								# max timestep length
 		self.ep = 0   									# episode increment
-		self.ep_pwr = []     							# total absolute power per each episode
+		self.ep_pwr = 0     							# total absolute power per each episode
 		self.kwh_cost = 0    							# battery cost per kwh
 		self.ep_start_kWh = 0     						# episode start charge
 		self.ep_end_kWh = 0     						# episode end charge
 		self.kWh_cost = 104.4     						# battery cost per kWh
 		self.price_ref = 0 	 							# counter to keep track of da price index
 		self.input_seq_size = 168
+		self.ep_prices = np.zeros((24))
 
 		# define parameter limits
 		limits = np.array([
@@ -60,6 +62,12 @@ class Battery(gym.Env):
 		# self.observation_space = gym.spaces.Box(
 		# 	low = limits[:,0],
 		# 	high = limits[:,1])
+
+		# load scaler for inverse transform
+		scaler_load = open(self.scaler_transform_path, "rb") 
+		self.scaler_transform = load(scaler_load)
+		scaler_load.close()
+
 
 		self.observation_space = np.append(np.zeros(24), self.soc)
 
@@ -119,11 +127,11 @@ class Battery(gym.Env):
 		print('degrade')
 		print(self.ep_start_kWh)
 		print(self.ep_end_kWh)
-		print(np.sum(self.ep_pwr))
+		print(self.ep_pwr)
 		print(self.kWh_cost)
 		print('*********************************************')
 
-		self.alpha_d = ((self.ep_start_kWh - self.ep_end_kWh) / np.sum(self.ep_pwr)) * self.kWh_cost
+		self.alpha_d = ((self.ep_start_kWh - self.ep_end_kWh) / self.ep_pwr) * self.kWh_cost
 		
 
 	def step(self, state, action):
@@ -135,7 +143,8 @@ class Battery(gym.Env):
 
 		# store episode start capacity 
 		if self.ts == 0:
-			self.ep_start_kWh = current_soc
+			print(f'current_soc: {current_soc}')
+			self.ep_start_kWh = current_soc * self.cr
 			# get prices for next episode length
 			self.ep_prices = []
 			for idx in range((self.ts_len//24) + 1):
@@ -143,9 +152,11 @@ class Battery(gym.Env):
 				self.price_ref += 1
 			# combine arrays to create price timeseries episode length
 			self.ep_prices = np.concatenate(self.ep_prices)
-
+			# inverse transform predictions
+			self.ep_prices = self.scaler_transform.inverse_transform(np.expand_dims(self.ep_prices,axis=-1))
+			
 		# convert action to kW 
-		action_kw = (action * self.pr)
+		action_kw = (self.action_space[action] * self.pr)
 
 		# store action to kWh
 		action_kwh = action_kw 
@@ -166,20 +177,30 @@ class Battery(gym.Env):
 		# da_prices = self._get_da_prices(self.input_prices['X_train'][self.ep + self.ts])
 
 		# reward function for current timestep
-		ts_reward =  (self.ep_prices[self.ts] * (action_kw / self.pr)) * (self.alpha_d * (abs(action_kw) / self.pr))
+		ts_reward =  (self.ep_prices[self.ts] * (action_kw / self.pr)) - (self.alpha_d * (abs(action_kw) / self.pr))
 
+		# print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
 
-		print(self.ep_prices[self.ts])
-		print(self.alpha_d)
+		# print(self.ep_prices[self.ts])
+		# print(action_kw)
+		# print(self.pr)
+		# print(self.alpha_d)
+
+		# print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
 
 		# collect power charge & discharge for episode
-		self.ep_pwr.append(action_kw)
+		self.ep_pwr += abs(action_kw)
 
 		# update observations
 		observations = np.append(self.ep_prices[self.ts:self.ts+24],  next_soc)
 
+		print(f'action: {action}')
+		print(f'action_kw: {action_kw}')
+		print(observations)
+		exit()
+
 		if self.ts == self.ts_len:
-			self.ep_end_kWh = next_soc
+			self.ep_end_kWh = next_soc * self.cr
 			done = True
 
 		self.soc = next_soc
@@ -192,25 +213,21 @@ class Battery(gym.Env):
 
 
 	def reset(self):
+
+		# update degrade co-efficient (only if more than one episode) 
+		if self.ep > 0:
+			self._degrade_coeff()
+
 		# increment epidsodes
 		self.ep += 1
-
-		# update degrade co-efficient 
-		self._degrade_coeff()
+		self.ep_pwr = 0
 
 		# reset vars
 		self.ts = 0
 		self.prev_action = None
 
-		self.da_prices = np.zeros((24))
 
-		print(self.da_prices.shape)
-
-
-		observations = np.append(self.da_prices, self.soc)
-
-		print(observations.shape)
-
+		observations = np.append(self.ep_prices[-24:], self.soc)
 
 
 		return observations
