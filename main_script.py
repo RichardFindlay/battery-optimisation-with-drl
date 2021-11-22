@@ -13,8 +13,8 @@ from DQN_pytorch import DQN_Agent
 
 # declare environment dictionary
 env_settings = {
-	'battery_capacity': 4000,	# rated capacity of battery (kWh)
-    'battery_energy': 2000,		# rated power of battery (kW)
+	'battery_capacity': 1000,	# rated capacity of battery (kWh)
+    'battery_energy': 100,		# rated power of battery (kW)
     'battery_price': 3,			# battery CAPEX (£/kWh)
     'num_actions': 5,			# splits charge/discharge MWs relative to rated power
     'standby_loss': 0.98,		# standby loss for battery when idle
@@ -28,13 +28,13 @@ env_settings = {
 
 
 
-n_episodes = 20 # max 67925
+n_episodes = 10 # max 67925
 time_range = 168
 
 gamma = 1.0
 epsilon = 1.0
 epsilon_end = 0.01
-epsilon_decay = 0.996
+epsilon_decay = 0.998
 
 
 env = Battery(env_settings)
@@ -55,11 +55,10 @@ scores= [] #list of rewards from each episode
 
 
 
-
 for ep in range(n_episodes):
 	episode_rew = 0
 	cur_state = env.reset()
-	print(f'episode: {ep}') 
+	# print(f'episode: {ep}') 
 
 	for step in range(time_range):
 		# print(f'step: {step}') 
@@ -68,17 +67,21 @@ for ep in range(n_episodes):
 
 		dqn_agent.step(cur_state, action, reward, new_state, update, batch_size, gamma, tau, done)
 
+		
 		cur_state = new_state
 		episode_rew += reward 
 
 		if done:
 			break
 
+		
+
 	scores.append(episode_rew)
-	# epsilon = epsilon - (2/episodes) if epsilon > 0.01 else 0.01
+	# epsilon = epsilon - (2/(ep+1)) if epsilon > 0.01 else 0.01
 	epsilon = max(epsilon*epsilon_decay, epsilon_end)
 
 	print("Episode:{}\n Reward:{}\n Epsilon:{}".format(ep, episode_rew, epsilon))
+
 
 torch.save(dqn_agent.qnet.state_dict(),'checkpoint.pth')
 

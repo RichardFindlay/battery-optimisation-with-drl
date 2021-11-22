@@ -97,10 +97,10 @@ class Battery(gym.Env):
 
 
 	def _next_soc(self, soc_t, efficiency, action, standby_loss):
-		e_ess = self.cr / 360
-		if self.pr < 0:
+		e_ess = self.cr
+		if action < 0:
 			next_soc = soc_t - (1/e_ess) * efficiency * (action)  
-		elif self.pr > 0:
+		elif action > 0:
 			next_soc = soc_t - (1/e_ess) * (1/efficiency) * (action)  
 		else:
 			next_soc = soc_t - (1/e_ess) * (standby_loss) 
@@ -123,15 +123,17 @@ class Battery(gym.Env):
 
 
 	def _degrade_coeff(self):
-		print('*********************************************')
-		print('degrade')
-		print(self.ep_start_kWh)
-		print(self.ep_end_kWh)
-		print(self.ep_pwr)
-		print(self.kWh_cost)
-		print('*********************************************')
-
-		self.alpha_d = ((self.ep_start_kWh - self.ep_end_kWh) / self.ep_pwr) * self.kWh_cost
+		# print('*****************************************************')
+		# print('degrade')
+		# print(self.ep_start_kWh)
+		# print(self.ep_end_kWh)
+		# print(self.ep_pwr)
+		# print(self.kWh_cost)
+		# print('*****************************************************')
+		if self.ep_pwr == 0:
+			self.alpha_d = 0
+		else:
+			self.alpha_d = ((self.ep_start_kWh - self.ep_end_kWh) / self.ep_pwr) * self.kWh_cost
 		
 
 	def step(self, state, action):
@@ -140,10 +142,12 @@ class Battery(gym.Env):
 		da_prices = state[:24]
 		current_soc = state[-1]
 		done = False
+		print('--------------------------------------------')
+		print(f'ts_chrage_start: {current_soc}')
+		print(f'action: {action}')
 
 		# store episode start capacity 
 		if self.ts == 0:
-			print(f'current_soc: {current_soc}')
 			self.ep_start_kWh = current_soc * self.cr
 			# get prices for next episode length
 			self.ep_prices = []
@@ -173,20 +177,21 @@ class Battery(gym.Env):
 		# state of charge at end of period
 		next_soc = self._next_soc(current_soc, efficiency, action_kwh, self.standby_loss)
 
+		# detemine if charge/discharge is out of bounds, i.e. <20% and >100% else fail episode
+		if next_soc < 0.1 or next_soc > 1.0:
+			done = True
+			ts_reward = -1
+			self.ep_end_kWh = current_soc * self.cr
+			observations = np.append(self.ep_prices[self.ts:self.ts+24],  next_soc)
+			return observations, ts_reward, done
+
 		# get t+1 price, return (sample, 24hr, 1)
 		# da_prices = self._get_da_prices(self.input_prices['X_train'][self.ep + self.ts])
 
 		# reward function for current timestep
-		ts_reward =  (self.ep_prices[self.ts] * (action_kw / self.pr)) - (self.alpha_d * (abs(action_kw) / self.pr))
+		ts_reward =  np.clip((self.ep_prices[self.ts] * (action_kw / self.pr)) - (self.alpha_d * (abs(action_kw) / self.pr)), -1,1)
 
-		# print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
-
-		# print(self.ep_prices[self.ts])
-		# print(action_kw)
-		# print(self.pr)
-		# print(self.alpha_d)
-
-		# print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&')
+		print(f'ts_reward: {ts_reward}')
 
 		# collect power charge & discharge for episode
 		self.ep_pwr += abs(action_kw)
@@ -194,19 +199,19 @@ class Battery(gym.Env):
 		# update observations
 		observations = np.append(self.ep_prices[self.ts:self.ts+24],  next_soc)
 
-		print(f'action: {action}')
-		print(f'action_kw: {action_kw}')
-		print(observations)
-		exit()
-
 		if self.ts == self.ts_len:
+			ts_reward +=  1
 			self.ep_end_kWh = next_soc * self.cr
 			done = True
 
 		self.soc = next_soc
 
 		# increment timestep
-		self.ts += 1 
+		self.ts += 1
+
+		print(f'price: {self.ep_prices[self.ts]}')
+		print(f'ts_chrage_end: {next_soc}')
+		print('--------------------------------------------')
 
 		return observations, ts_reward, done
 
