@@ -28,17 +28,17 @@ env_settings = {
 
 
 
-n_episodes = 10 # max 67925
+n_episodes = 10000 # max 67925
 time_range = 168
 
 gamma = 1.0
 epsilon = 1.0
 epsilon_end = 0.01
-epsilon_decay = 0.998
+epsilon_decay = 0.9998
 
 
 env = Battery(env_settings)
-state_size = env.observation_space.shape[0]
+state_size = (env.observation_space.shape[0])
 action_size = len(env.action_space)
 seed = 100
 
@@ -47,7 +47,7 @@ buffer_size = int(1e5)
 batch_size = 64
 gamma = 0.99
 tau = 1e-3
-update = 4
+update = 168
 
 
 dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed)
@@ -56,31 +56,43 @@ scores= [] #list of rewards from each episode
 
 
 for ep in range(n_episodes):
+	print('NEW EPISODE--------------++++++++++++++++++++++++++++++++++++++_____________')
 	episode_rew = 0
 	cur_state = env.reset()
-	# print(f'episode: {ep}') 
-
+	print(f'episode: {ep}') 
+	
 	for step in range(time_range):
-		# print(f'step: {step}') 
+		print('NEW TS')
+		print(f'step: {step}') 
+		print(f'total_step: {env.total_ts}') 
+		print(f'day_num: {env.day_num}') 
+		print(cur_state)
+
 		action = dqn_agent.action(cur_state, epsilon)
+		print(f'action: {action}') 
 		new_state, reward, done = env.step(cur_state, action)
+
+		# print(new_state)
 
 		dqn_agent.step(cur_state, action, reward, new_state, update, batch_size, gamma, tau, done)
 
-		
-		cur_state = new_state
-		episode_rew += reward 
+		cur_state = new_state 
+		episode_rew += reward
+
+		# print(f'reward****@{step}: {episode_rew}')
+		# if ep == 5:
+		# 	exit()
 
 		if done:
 			break
 
-		
-
 	scores.append(episode_rew)
 	# epsilon = epsilon - (2/(ep+1)) if epsilon > 0.01 else 0.01
 	epsilon = max(epsilon*epsilon_decay, epsilon_end)
+	# env.ep += 1
 
-	print("Episode:{}\n Reward:{}\n Epsilon:{}".format(ep, episode_rew, epsilon))
+
+	# print("Episode:{}\n Reward:{}\n Epsilon:{}".format(ep, episode_rew, epsilon))
 
 
 torch.save(dqn_agent.qnet.state_dict(),'checkpoint.pth')
