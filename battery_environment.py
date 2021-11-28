@@ -191,7 +191,7 @@ class Battery(gym.Env):
 		# detemine if charge/discharge is out of bounds, i.e. <20% and >100% else fail episode
 		if next_soc < 0 or next_soc > 1.0:
 			self.done = True
-			ts_reward = -1
+			ts_reward = -500
 			self.ep_end_kWh = current_soc * self.cr
 			observations = np.append(self.ep_prices[self.ts:self.ts+24],  next_soc)
 			self.total_ts -= 1
@@ -204,7 +204,10 @@ class Battery(gym.Env):
 
 		# reward function for current timestep
 		ts_price = self.scaler_transform.inverse_transform(np.expand_dims(self.ep_prices[self.ts:self.ts+1],axis=-1))
-		ts_reward =  np.clip((ts_price * (action_kw / self.pr)) - (self.alpha_d * (abs(action_kw) / self.pr)), -1,1)
+		# ts_reward =  np.clip((ts_price * (action_kw / self.pr)) - (self.alpha_d * (abs(action_kw) / self.pr)), -1,1)
+		ts_reward =  np.squeeze(ts_price * (action_kw / self.pr)) - (self.alpha_d * (abs(action_kw) / self.pr))
+
+		# print(ts_reward.shape)
 
 		# print(f'ts_reward: {ts_reward}')
 

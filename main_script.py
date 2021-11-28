@@ -26,7 +26,8 @@ env_settings = {
     'torch_model': './Models/da_price_prediction_336hr_in_24hr_out_model.pt'	 # relevant to current file dir
 }
 
-
+# no clipping of reward signal
+# and -500 for exceeding 0-1 boundary SoC
 
 n_episodes = 10000 # max 67925
 time_range = 168
@@ -34,8 +35,8 @@ time_range = 168
 gamma = 1.0
 epsilon = 1.0
 epsilon_end = 0.01
-epsilon_decay = 0.9998
-
+# epsilon_decay = 0.99985
+epsilon_decay = 0.9995
 
 env = Battery(env_settings)
 state_size = (env.observation_space.shape[0])
@@ -44,14 +45,14 @@ seed = 100
 
 learning_rate = 5e-4 
 buffer_size = int(1e5) 
-batch_size = 64
+batch_size = 256 # 64 best
 gamma = 0.99
 tau = 1e-3
-update = 168
+update = 168 # 168 best 
 
 
 dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed)
-scores= [] #list of rewards from each episode
+scores= np.empty((n_episodes)) #list of rewards from each episode
 
 
 
@@ -59,17 +60,17 @@ for ep in range(n_episodes):
 	print('NEW EPISODE--------------++++++++++++++++++++++++++++++++++++++_____________')
 	episode_rew = 0
 	cur_state = env.reset()
-	print(f'episode: {ep}') 
+	# print(f'episode: {ep}') 
 	
 	for step in range(time_range):
-		print('NEW TS')
+		# print('NEW TS')
 		print(f'step: {step}') 
-		print(f'total_step: {env.total_ts}') 
-		print(f'day_num: {env.day_num}') 
-		print(cur_state)
+		# print(f'total_step: {env.total_ts}') 
+		# print(f'day_num: {env.day_num}') 
+		# print(cur_state)
 
 		action = dqn_agent.action(cur_state, epsilon)
-		print(f'action: {action}') 
+		# print(f'action: {action}') 
 		new_state, reward, done = env.step(cur_state, action)
 
 		# print(new_state)
@@ -86,19 +87,25 @@ for ep in range(n_episodes):
 		if done:
 			break
 
-	scores.append(episode_rew)
+	scores[ep] = episode_rew 
 	# epsilon = epsilon - (2/(ep+1)) if epsilon > 0.01 else 0.01
 	epsilon = max(epsilon*epsilon_decay, epsilon_end)
 	# env.ep += 1
 
 
-	# print("Episode:{}\n Reward:{}\n Epsilon:{}".format(ep, episode_rew, epsilon))
+	print("Episode:{}\n Reward:{}\n Epsilon:{}".format(ep, episode_rew, epsilon))
+
+mean_rewards = np.zeros(n_episodes)
+for t in range(n_episodes):
+	mean_rewards[t] = np.mean(scores[max(0, t-100):(t+1)])
 
 
 torch.save(dqn_agent.qnet.state_dict(),'checkpoint.pth')
 
 fig, ax = plt.subplots()
-ax.plot(scores)
+ax.plot(scores, label="episode reward")
+ax.plot(mean_rewards, label="mean")
+ax.legend()
 ax.grid()
 plt.show()
 
