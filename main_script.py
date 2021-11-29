@@ -34,7 +34,7 @@ time_range = 168
 
 gamma = 1.0
 epsilon = 1.0
-epsilon_end = 0.01
+epsilon_end = 0.0
 # epsilon_decay = 0.99985
 epsilon_decay = 0.9995
 
@@ -52,13 +52,16 @@ update = 168 # 168 best
 
 
 dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed)
-scores= np.empty((n_episodes)) #list of rewards from each episode
+scores = np.empty((n_episodes)) #list of rewards from each episode
+profits = np.empty((n_episodes))
 
 
 
 for ep in range(n_episodes):
 	print('NEW EPISODE--------------++++++++++++++++++++++++++++++++++++++_____________')
 	episode_rew = 0
+	episode_profit = 0
+
 	cur_state = env.reset()
 	# print(f'episode: {ep}') 
 	
@@ -71,7 +74,7 @@ for ep in range(n_episodes):
 
 		action = dqn_agent.action(cur_state, epsilon)
 		# print(f'action: {action}') 
-		new_state, reward, done = env.step(cur_state, action)
+		new_state, reward, done, info = env.step(cur_state, action)
 
 		# print(new_state)
 
@@ -79,6 +82,9 @@ for ep in range(n_episodes):
 
 		cur_state = new_state 
 		episode_rew += reward
+
+		# store episode profit 
+		episode_profit += info["profit"]
 
 		# print(f'reward****@{step}: {episode_rew}')
 		# if ep == 5:
@@ -88,12 +94,13 @@ for ep in range(n_episodes):
 			break
 
 	scores[ep] = episode_rew 
+	profits[ep] = episode_profit
 	# epsilon = epsilon - (2/(ep+1)) if epsilon > 0.01 else 0.01
 	epsilon = max(epsilon*epsilon_decay, epsilon_end)
 	# env.ep += 1
 
 
-	print("Episode:{}\n Reward:{}\n Epsilon:{}".format(ep, episode_rew, epsilon))
+	print(f"Episode:{ep}\n Reward:{episode_rew}\n Epsilon:{epsilon}\n Profit: {episode_profit}")
 
 mean_rewards = np.zeros(n_episodes)
 for t in range(n_episodes):

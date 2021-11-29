@@ -191,7 +191,7 @@ class Battery(gym.Env):
 		# detemine if charge/discharge is out of bounds, i.e. <20% and >100% else fail episode
 		if next_soc < 0 or next_soc > 1.0:
 			self.done = True
-			ts_reward = -500
+			ts_reward = -200
 			self.ep_end_kWh = current_soc * self.cr
 			observations = np.append(self.ep_prices[self.ts:self.ts+24],  next_soc)
 			self.total_ts -= 1
@@ -226,7 +226,7 @@ class Battery(gym.Env):
 		observations = np.append(self.ep_prices[price_index_start:price_index_end],  next_soc)
 
 		if self.ts == self.ts_len:
-			ts_reward +=  100
+			# ts_reward +=  100
 			self.ep_end_kWh = next_soc * self.cr
 			# done = True
 
@@ -244,11 +244,14 @@ class Battery(gym.Env):
 			self.ts = 0
 
 		# print(f'price: {ts_price}')
+		ts_profit = (ts_price * action_kw) - (self.alpha_d * abs(action_kw))
+
+		info = {'profit': ts_profit}
 
 		# print(f'ts_chrage_end: {next_soc}')
 		# print('--------------------------------------------')
 
-		return observations, ts_reward, self.done
+		return observations, ts_reward, self.done, info
 
 
 
