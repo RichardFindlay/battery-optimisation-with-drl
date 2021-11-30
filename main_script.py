@@ -36,7 +36,7 @@ gamma = 1.0
 epsilon = 1.0
 epsilon_end = 0.0
 # epsilon_decay = 0.99985
-epsilon_decay = 0.9995
+epsilon_decay = 0.9994
 
 env = Battery(env_settings)
 state_size = (env.observation_space.shape[0])
@@ -44,7 +44,7 @@ action_size = len(env.action_space)
 seed = 100
 
 learning_rate = 5e-4 
-buffer_size = int(1e5) 
+buffer_size = int(1e5)
 batch_size = 256 # 64 best
 gamma = 0.99
 tau = 1e-3
@@ -70,7 +70,7 @@ for ep in range(n_episodes):
 		print(f'step: {step}') 
 		# print(f'total_step: {env.total_ts}') 
 		# print(f'day_num: {env.day_num}') 
-		# print(cur_state)
+		print(cur_state)
 
 		action = dqn_agent.action(cur_state, epsilon)
 		# print(f'action: {action}') 
@@ -84,10 +84,10 @@ for ep in range(n_episodes):
 		episode_rew += reward
 
 		# store episode profit 
-		episode_profit += info["profit"]
+		episode_profit += info["ts_cost"]
 
 		# print(f'reward****@{step}: {episode_rew}')
-		# if ep == 5:
+		# if ep == 3:
 		# 	exit()
 
 		if done:
