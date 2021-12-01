@@ -110,7 +110,7 @@ class Battery(gym.Env):
 			next_soc = soc_t - (1/e_ess) * efficiency * (action)  
 		elif action > 0:
 			next_soc = soc_t - (1/e_ess) * (1/efficiency) * (action)  
-		else:
+		elif action == 0:
 			next_soc = soc_t - (1/e_ess) * (standby_loss) 
 		return next_soc
 
@@ -163,7 +163,7 @@ class Battery(gym.Env):
 		# store episode start capacity 
 		if self.new_ep == True:
 			self.ep_start_kWh = current_soc * self.cr
-			
+
 		# get prices for next episode length
 		self.ep_prices = []
 		for idx in range((self.ts_len // 24) + 1):
@@ -208,10 +208,11 @@ class Battery(gym.Env):
 		# da_prices = self._get_da_prices(self.input_prices['X_train'][self.ep + self.ts])
 
 		# reward function for current timestep
-		ts_price = self.scaler_transform.inverse_transform(np.expand_dims(self.ep_prices[self.ts:self.ts+1],axis=-1))
+		ts_price_MW = self.scaler_transform.inverse_transform(np.expand_dims(self.ep_prices[self.ts:self.ts+1],axis=-1))
+		ts_price_kW = ts_price_MW / 1000 
 		# ts_price = np.expand_dims(self.ep_prices[self.ts:self.ts+1],axis=-1)
 		# ts_reward =  np.clip((ts_price * (action_kw / self.pr)) - (self.alpha_d * (abs(action_kw) / self.pr)), -1,1)
-		ts_reward =  np.squeeze(ts_price * (action_kw / self.pr)) - (self.alpha_d * (abs(action_kw) / self.pr))
+		ts_reward =  np.squeeze(ts_price_kW * (action_kw / (self.action_space[-1]* self.pr))) - (self.alpha_d * (abs(action_kw) / (self.action_space[-1]* self.pr)))
 
 		# print(ts_reward.shape)
 
@@ -220,8 +221,9 @@ class Battery(gym.Env):
 		# collect power charge & discharge for episode
 		self.ep_pwr += abs(action_kw)
 
+		print(f'day_num: {self.day_num}')
 		print(f'ts_reward: {ts_reward}')
-
+		print(f'action: {action_kw}')
 
 		# update observations
 		price_index_start = self.ts
@@ -230,7 +232,7 @@ class Battery(gym.Env):
 		# if self.ep == 0:
 		# 	price_index_start += 1
 		# 	price_index_end += 1
-
+		print(f'ts_int: {self.ts}')
 		observations = np.append(self.ep_prices[price_index_start:price_index_end],  next_soc)
 
 
@@ -248,14 +250,14 @@ class Battery(gym.Env):
 		self.total_ts += 1
 		# ts_reward += 0.5
 
-		if self.ts % 24 == 0:
+		if self.ts % 25 == 0:
 			self.day_num += 1
 
-		if self.ts % 168 == 0:
+		if self.ts % 169 == 0:
 			self.ts = 0
 
 		# print(f'price: {ts_price}')
-		ts_cost = (ts_price * action_kw) - (self.alpha_d * abs(action_kw))
+		ts_cost = (ts_price_kW * action_kw) - (self.alpha_d * abs(action_kw))
 
 		info = {'ts_cost': ts_cost}
 
@@ -272,8 +274,8 @@ class Battery(gym.Env):
 		self.ep_end_kWh = self.soc * self.cr
 
 		# update degrade co-efficient (only if more than one episode) 
-		if self.ep > 0:
-			self._degrade_coeff()
+		# if self.ep > 0:
+		self._degrade_coeff()
 
 		# increment epidsodes
 		# if self.ts == self.ts_len or self.done == True:
@@ -287,6 +289,9 @@ class Battery(gym.Env):
 		# observations = np.append(self.ep_prices[self.ep + self.price_ref], self.soc)
 		observations = np.append(self.ep_prices[self.ts:self.ts+24], self.soc)
 
+		# if self.ts % 168 == 0:
+		# 	self.ts = 0
+
 		# if self.done == False:
 		# 	print(f'price_ref: {self.price_ref}')
 		# 	self.price_ref += 1
@@ -296,7 +301,7 @@ class Battery(gym.Env):
 		# 	self.ts = 0
 
 
-		self.total_ts += 1
+		self.ts += 1
 		# self.ts += 1
 		self.done = False
 

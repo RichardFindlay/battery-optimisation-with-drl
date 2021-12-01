@@ -128,9 +128,9 @@ def input_output(ts, times_data, dates, input_seq_size, output_seq_size):
 	x_input = np.concatenate([x_input, x_times_data], axis=-1)
 
 
-	X_train, X_test, y_train, y_test = train_test_split(x_input, y_output, test_size=0.1, random_state=28)
+	X_train, X_test, y_train, y_test = train_test_split(x_input, y_output, test_size=0.1, shuffle=False)
 
-	X_train_times, X_test_times, y_train_times, y_test_times = train_test_split(x_input_times, y_output_times, test_size=0.1, random_state=28)
+	X_train_times, X_test_times, y_train_times, y_test_times = train_test_split(x_input_times, y_output_times, test_size=0.1, shuffle=False)
 
 
 	train_data = {
@@ -158,10 +158,10 @@ def input_output(ts, times_data, dates, input_seq_size, output_seq_size):
 train_data, test_data = input_output(ts, times_data, dates, input_seq_size=336, output_seq_size=24)
 
 # save data
-with open(f"./Data/processed_data/train_data_336hr_in_24hr_out.pkl", "wb") as trainset:
+with open(f"./Data/processed_data/train_data_336hr_in_24hr_out_unshuffled.pkl", "wb") as trainset:
 	dump(train_data, trainset)
 
-with open("./Data/processed_data/test_data_336hr_in_24hr_out.pkl", "wb") as testset:
+with open("./Data/processed_data/test_data_336hr_in_24hr_out_unshuffled.pkl", "wb") as testset:
 	dump(test_data, testset)
 
 

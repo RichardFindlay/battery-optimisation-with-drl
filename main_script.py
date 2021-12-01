@@ -17,12 +17,12 @@ env_settings = {
     'battery_energy': 100,		# rated power of battery (kW)
     'battery_price': 3,			# battery CAPEX (£/kWh)
     'num_actions': 5,			# splits charge/discharge MWs relative to rated power
-    'standby_loss': 0.98,		# standby loss for battery when idle
+    'standby_loss': 0.99,		# standby loss for battery when idle
     'num_episodes': 1000,		# number of episodes 
     'train': True,				# Boolean to determine whether train or test state
     'scaler_transform_path': './Data/processed_data/da_price_scaler.pkl',				
-    'train_data_path': './Data/processed_data/train_data_336hr_in_24hr_out.pkl', # Path to trian data
-    'test_data_path': './Data/processed_data/test_data_336hr_in_24hr_out.pkl',	 # Path to test data
+    'train_data_path': './Data/processed_data/train_data_336hr_in_24hr_out_unshuffled.pkl', # Path to trian data
+    'test_data_path': './Data/processed_data/test_data_336hr_in_24hr_out_unshuffled.pkl',	 # Path to test data
     'torch_model': './Models/da_price_prediction_336hr_in_24hr_out_model.pt'	 # relevant to current file dir
 }
 
