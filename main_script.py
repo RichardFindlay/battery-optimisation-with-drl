@@ -13,8 +13,8 @@ from DQN_pytorch import DQN_Agent
 
 # declare environment dictionary
 env_settings = {
-	'battery_capacity': 1000,	# rated capacity of battery (kWh)
-    'battery_energy': 100,		# rated power of battery (kW)
+	'battery_capacity': 5000,	# rated capacity of battery (kWh)
+    'battery_energy': 1000,		# rated power of battery (kW)
     'battery_price': 3,			# battery CAPEX (£/kWh)
     'num_actions': 5,			# splits charge/discharge MWs relative to rated power
     'standby_loss': 0.99,		# standby loss for battery when idle
@@ -70,7 +70,7 @@ for ep in range(n_episodes):
 		print(f'step: {step}') 
 		# print(f'total_step: {env.total_ts}') 
 		# print(f'day_num: {env.day_num}') 
-		print(cur_state)
+		# print(cur_state)
 
 		action = dqn_agent.action(cur_state, epsilon)
 		# print(f'action: {action}') 
@@ -117,7 +117,7 @@ ax.grid()
 plt.show()
 
 
-
+ 
 
 
 

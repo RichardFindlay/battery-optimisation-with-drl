@@ -200,7 +200,6 @@ class Battery(gym.Env):
 			observations = np.append(self.ep_prices[self.ts:self.ts+24],  next_soc)
 			self.ts -= 1
 			info = {'ts_cost': 0}
-			# self.ts -= 1
 			return observations, ts_reward, self.done, info 
 
 
@@ -212,7 +211,8 @@ class Battery(gym.Env):
 		ts_price_kW = ts_price_MW / 1000 
 		# ts_price = np.expand_dims(self.ep_prices[self.ts:self.ts+1],axis=-1)
 		# ts_reward =  np.clip((ts_price * (action_kw / self.pr)) - (self.alpha_d * (abs(action_kw) / self.pr)), -1,1)
-		ts_reward =  np.squeeze(ts_price_kW * (action_kw / (self.action_space[-1]* self.pr))) - (self.alpha_d * (abs(action_kw) / (self.action_space[-1]* self.pr)))
+		# ts_reward =  np.squeeze(ts_price_kW * (action_kw / (self.action_space[-1]* self.pr))) - (self.alpha_d * (abs(action_kw) / (self.action_space[-1]* self.pr)))
+		ts_reward =  np.squeeze(ts_price_kW * action_kw)
 
 		# print(ts_reward.shape)
 
@@ -221,9 +221,9 @@ class Battery(gym.Env):
 		# collect power charge & discharge for episode
 		self.ep_pwr += abs(action_kw)
 
-		print(f'day_num: {self.day_num}')
-		print(f'ts_reward: {ts_reward}')
-		print(f'action: {action_kw}')
+		# print(f'day_num: {self.day_num}')
+		# print(f'ts_reward: {ts_reward}')
+		# print(f'action: {action_kw}')
 
 		# update observations
 		price_index_start = self.ts
@@ -232,7 +232,7 @@ class Battery(gym.Env):
 		# if self.ep == 0:
 		# 	price_index_start += 1
 		# 	price_index_end += 1
-		print(f'ts_int: {self.ts}')
+		# print(f'ts_int: {self.ts}')
 		observations = np.append(self.ep_prices[price_index_start:price_index_end],  next_soc)
 
 
@@ -250,16 +250,24 @@ class Battery(gym.Env):
 		self.total_ts += 1
 		# ts_reward += 0.5
 
-		if self.ts % 25 == 0:
-			self.day_num += 1
+		# print('epidsode_prices_len')
+		# print(self.ep_prices.shape)
 
-		if self.ts % 169 == 0:
-			self.ts = 0
+
+		if self.ts == 25:
+			self.day_num += 1
+			self.ts = 1
+
+		# if self.ts % 25 == 0:
+
+
 
 		# print(f'price: {ts_price}')
-		ts_cost = (ts_price_kW * action_kw) - (self.alpha_d * abs(action_kw))
+		# ts_cost = (ts_price_kW * action_kw) - (self.alpha_d * abs(action_kw))
+		ts_cost = (ts_price_kW * action_kw)
 
 		info = {'ts_cost': ts_cost}
+		print(f'ts_cost: {ts_cost}')
 
 		# print(f'ts_chrage_end: {next_soc}')
 		# print('--------------------------------------------')
@@ -285,7 +293,8 @@ class Battery(gym.Env):
 
 		if self.done == True:
 			self.soc = 0.5
-		
+
+		print(f'timestep-----------------------------------------------------------------+=======: {self.ts}')
 		# observations = np.append(self.ep_prices[self.ep + self.price_ref], self.soc)
 		observations = np.append(self.ep_prices[self.ts:self.ts+24], self.soc)
 
@@ -310,6 +319,12 @@ class Battery(gym.Env):
 		# self.done = False
 		self.new_ep = True
 		self.ep += 1
+
+		if self.ts == 25:
+			self.day_num += 1
+			self.ts = 1
+
+
 
 
 		
