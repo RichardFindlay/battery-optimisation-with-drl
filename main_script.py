@@ -65,16 +65,16 @@ for ep in range(n_episodes):
 	cur_state = env.reset()
 	# print(f'episode: {ep}') 
 	
-	for step in range(time_range):
+	for step in range(time_range): 
 		# print('NEW TS')
 		print(f'step: {step}') 
 		# print(f'total_step: {env.total_ts}') 
 		# print(f'day_num: {env.day_num}') 
-		# print(cur_state)
+		print(cur_state)
 
 		action = dqn_agent.action(cur_state, epsilon)
 		# print(f'action: {action}') 
-		new_state, reward, done, info = env.step(cur_state, action)
+		new_state, reward, done, info = env.step(cur_state, action, step)
 
 		# print(new_state)
 

@@ -50,6 +50,7 @@ class Battery(gym.Env):
 		self.done = False
 		self.total_ts = 0
 		self.day_num = 0
+		self.game_over = False
 		
 
 		# define parameter limits
@@ -149,7 +150,7 @@ class Battery(gym.Env):
 
 		
 
-	def step(self, state, action):
+	def step(self, state, action, step):
 
 		# collect current vars from state space
 		da_prices = state[:24]
@@ -195,7 +196,8 @@ class Battery(gym.Env):
 		# detemine if charge/discharge is out of bounds, i.e. <20% and >100% else fail episode
 		if next_soc < 0 or next_soc > 1.0:
 			self.done = True
-			ts_reward = -100
+			self.game_over = True
+			ts_reward = -1000
 			# self.ep_end_kWh = current_soc * self.cr
 			observations = np.append(self.ep_prices[self.ts:self.ts+24],  next_soc)
 			self.ts -= 1
@@ -237,10 +239,12 @@ class Battery(gym.Env):
 
 
 
-		# if self.ts == self.ts_len:
+		if step == self.ts_len - 1:
+			print('_________________DONE______________')
 			# ts_reward +=  50
 			# self.ep_end_kWh = next_soc * self.cr
-			# done = True
+			self.ts -= 1
+			self.done = True
 
 		self.soc = next_soc
 		self.new_ep = False
@@ -268,6 +272,8 @@ class Battery(gym.Env):
 
 		info = {'ts_cost': ts_cost}
 		print(f'ts_cost: {ts_cost}')
+		print(f'timestep-----------------------------------------------------------------+=======: {self.ts}')
+		print(f'day_num-----------------------------------------------------------------+=======: {self.day_num}')
 
 		# print(f'ts_chrage_end: {next_soc}')
 		# print('--------------------------------------------')
@@ -291,10 +297,11 @@ class Battery(gym.Env):
 
 		self.ep_pwr = 0
 
-		if self.done == True:
+		if self.game_over == True:
 			self.soc = 0.5
 
 		print(f'timestep-----------------------------------------------------------------+=======: {self.ts}')
+		print(f'day_num-----------------------------------------------------------------+=======: {self.day_num}')
 		# observations = np.append(self.ep_prices[self.ep + self.price_ref], self.soc)
 		observations = np.append(self.ep_prices[self.ts:self.ts+24], self.soc)
 
@@ -313,6 +320,7 @@ class Battery(gym.Env):
 		self.ts += 1
 		# self.ts += 1
 		self.done = False
+		self.game_over = False
 
 		# self.price_ref = 0
 
