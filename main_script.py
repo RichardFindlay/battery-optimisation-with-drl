@@ -29,14 +29,14 @@ env_settings = {
 # no clipping of reward signal
 # and -500 for exceeding 0-1 boundary SoC
 
-n_episodes = 10000 # max 67925
+n_episodes = 30000 # max 67925
 time_range = 168
 
-gamma = 1.0
+
 epsilon = 1.0
 epsilon_end = 0.0
 # epsilon_decay = 0.99985
-epsilon_decay = 0.9994
+epsilon_decay = 0.999
 
 env = Battery(env_settings)
 state_size = (env.observation_space.shape[0])
@@ -46,9 +46,9 @@ seed = 100
 learning_rate = 5e-4 
 buffer_size = int(1e5)
 batch_size = 256 # 64 best
-gamma = 0.99
+gamma = 1.0
 tau = 1e-3
-update = 168 # 168 best 
+update = 336 # 168 best 
 
 
 dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed)
@@ -70,7 +70,7 @@ for ep in range(n_episodes):
 		print(f'step: {step}') 
 		# print(f'total_step: {env.total_ts}') 
 		# print(f'day_num: {env.day_num}') 
-		print(cur_state)
+		# print(cur_state)
 
 		action = dqn_agent.action(cur_state, epsilon)
 		# print(f'action: {action}') 

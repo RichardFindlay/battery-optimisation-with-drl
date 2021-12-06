@@ -197,7 +197,7 @@ class Battery(gym.Env):
 		if next_soc < 0 or next_soc > 1.0:
 			self.done = True
 			self.game_over = True
-			ts_reward = -1000
+			ts_reward = -500
 			# self.ep_end_kWh = current_soc * self.cr
 			observations = np.append(self.ep_prices[self.ts:self.ts+24],  next_soc)
 			self.ts -= 1
@@ -272,8 +272,8 @@ class Battery(gym.Env):
 
 		info = {'ts_cost': ts_cost}
 		print(f'ts_cost: {ts_cost}')
-		print(f'timestep-----------------------------------------------------------------+=======: {self.ts}')
-		print(f'day_num-----------------------------------------------------------------+=======: {self.day_num}')
+		# print(f'timestep-----------------------------------------------------------------+=======: {self.ts}')
+		# print(f'day_num-----------------------------------------------------------------+=======: {self.day_num}')
 
 		# print(f'ts_chrage_end: {next_soc}')
 		# print('--------------------------------------------')
@@ -298,10 +298,10 @@ class Battery(gym.Env):
 		self.ep_pwr = 0
 
 		if self.game_over == True:
-			self.soc = 0.5
+			self.soc = 0.0
 
-		print(f'timestep-----------------------------------------------------------------+=======: {self.ts}')
-		print(f'day_num-----------------------------------------------------------------+=======: {self.day_num}')
+		# print(f'timestep-----------------------------------------------------------------+=======: {self.ts}')
+		# print(f'day_num-----------------------------------------------------------------+=======: {self.day_num}')
 		# observations = np.append(self.ep_prices[self.ep + self.price_ref], self.soc)
 		observations = np.append(self.ep_prices[self.ts:self.ts+24], self.soc)
 
