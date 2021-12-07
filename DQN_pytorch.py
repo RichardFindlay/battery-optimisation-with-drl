@@ -39,7 +39,11 @@ class Replay():
 
 	def sample(self):
 		""" randomly sample experiences from memory """
+		# experiences = random.sample(self.memory, k=self.batch_size)
+		# experiences = random.sample(self.memory, k=self.batch_size)
+
 		experiences = random.sample(self.memory, k=self.batch_size)
+
 
 		states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(device)
 		actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(device)
@@ -117,9 +121,10 @@ class DQN_Agent():
 		with torch.no_grad():
 			labels_next = self.qnet_target(next_states).detach().max(1)[0].unsqueeze(1)
 
-		labels = rewards + (gamma * labels_next * (1-dones))
+		labels = rewards + (gamma * labels_next*(1-dones))
 
 		loss = criterion(predicted_targets, labels).to(device)
+		print(f"loss: {loss}---------------------------------------------------------------+++++++++++++++++++------")
 		self.optimizer.zero_grad()
 		loss.backward()
 		self.optimizer.step()
