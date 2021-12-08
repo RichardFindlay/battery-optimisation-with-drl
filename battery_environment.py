@@ -198,7 +198,7 @@ class Battery(gym.Env):
 			self.done = True
 			self.game_over = True
 			ts_reward = -500
-			# ts_reward = ts_reward * 0.1		
+			ts_reward = ts_reward * 0.01	
 			# self.ep_end_kWh = current_soc * self.cr
 			observations = np.append(self.ep_prices[self.ts:self.ts+24],  next_soc)
 			self.ts -= 1
@@ -266,7 +266,7 @@ class Battery(gym.Env):
 		# if self.ts % 25 == 0:
 
 		# scale reward for quicker learning
-		# ts_reward = ts_reward * 0.1		
+		ts_reward = ts_reward * 0.01		
 
 		# print(f'price: {ts_price}')
 		# ts_cost = (ts_price_kW * action_kw) - (self.alpha_d * abs(action_kw))

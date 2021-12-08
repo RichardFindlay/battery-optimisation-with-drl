@@ -34,8 +34,8 @@ time_range = 168
 
 
 epsilon = 1.0
-epsilon_end = 0.0
-# epsilon_decay = 0.99985
+epsilon_end = 0.01
+# epsilon_decay = 0.9996
 epsilon_decay = 0.9996
 
 env = Battery(env_settings)
@@ -45,10 +45,10 @@ seed = 100
 
 learning_rate = 5e-4 
 buffer_size = int(1e5)
-batch_size = 64 # 64 best
-gamma = 1.0
+batch_size = 128 # 64 best
+gamma = 0.99
 tau = 1e-3
-update = 168 # 168 best 
+update = 8 # 168 best 
 
 
 dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed)
