@@ -29,7 +29,7 @@ env_settings = {
 # no clipping of reward signal
 # and -500 for exceeding 0-1 boundary SoC
 
-n_episodes = 10000 # max 67925
+n_episodes = 12000 # max 67925
 time_range = 168
 
 
@@ -43,12 +43,13 @@ state_size = (env.observation_space.shape[0])
 action_size = len(env.action_space)
 seed = 100
 
-learning_rate = 5e-4 
+learning_rate = 25e-5 
 buffer_size = int(1e5)
-batch_size = 128 # 64 best
+batch_size = 64 # 64 best
 gamma = 0.99
-tau = 1e-3
-update = 8 # 168 best 
+# tau = 1e-3
+tau = 1
+update = 5000 # 168 best 
 
 
 dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed)

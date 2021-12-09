@@ -11,18 +11,20 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # define model architecture
 class QNet(nn.Module):
 	""" Policy Model """
-	def __init__(self, state_size, action_size, seed, fc1_units=64, fc2_units=64):
+	def __init__(self, state_size, action_size, seed, fc1_units=16, fc2_units=16, fc3_units=16):
 		super(QNet, self).__init__()
 		self.seed = torch.manual_seed(seed)
 		self.dense1 = nn.Linear(state_size, fc1_units)
 		self.dense2 = nn.Linear(fc1_units, fc2_units)
-		self.dense3 = nn.Linear(fc2_units, action_size)
+		self.dense3 = nn.Linear(fc2_units, fc3_units)
+		self.dense4 = nn.Linear(fc3_units, action_size)
 
 	def forward(self, states):
 		""" map state values to action values """
 		x = F.relu(self.dense1(states))
 		x = F.relu(self.dense2(x))
-		return self.dense3(x)
+		x = F.relu(self.dense3(x))
+		return self.dense4(x)
 
 # replay buffer object
 class Replay():
@@ -120,7 +122,7 @@ class DQN_Agent():
 		with torch.no_grad():
 			labels_next = self.qnet_target(next_states).detach().max(1)[0].unsqueeze(1)
 
-		labels = rewards + (gamma * labels_next)
+		labels = rewards + (gamma * labels_next*(1-dones))
 
 		# print(labels_next)
 		# print(labels)

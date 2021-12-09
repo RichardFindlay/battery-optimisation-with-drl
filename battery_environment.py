@@ -72,8 +72,8 @@ class Battery(gym.Env):
 		self.scaler_transform = load(scaler_load)
 		scaler_load.close()
 
-
-		self.observation_space = np.append(np.zeros(24), self.soc)
+		obs = np.append(self.ts, self.soc)
+		self.observation_space = np.append(np.zeros(24), obs)
 
 		self.action_space = np.linspace(-1, 1, num = self.num_actions , endpoint = True)
 
@@ -197,10 +197,11 @@ class Battery(gym.Env):
 		if next_soc < 0 or next_soc > 1.0:
 			self.done = True
 			self.game_over = True
-			ts_reward = -500
-			ts_reward = ts_reward * 0.01	
+			ts_reward = -1
+			# ts_reward = ts_reward * 0.01	
 			# self.ep_end_kWh = current_soc * self.cr
-			observations = np.append(self.ep_prices[self.ts:self.ts+24],  next_soc)
+			obs = np.append(self.ts / 24, next_soc)
+			observations = np.append(self.ep_prices[self.ts:self.ts+24],  obs)
 			self.ts -= 1
 			info = {'ts_cost': 0}
 			return observations, ts_reward, self.done, info 
@@ -219,7 +220,7 @@ class Battery(gym.Env):
 
 		# print(ts_reward.shape)
 
-		# print(f'ts_reward: {ts_reward}')
+		
 
 		# collect power charge & discharge for episode
 		self.ep_pwr += abs(action_kw)
@@ -236,7 +237,8 @@ class Battery(gym.Env):
 		# 	price_index_start += 1
 		# 	price_index_end += 1
 		# print(f'ts_int: {self.ts}')
-		observations = np.append(self.ep_prices[price_index_start:price_index_end],  next_soc)
+		obs = np.append(self.ts / 24, next_soc)
+		observations = np.append(self.ep_prices[price_index_start:price_index_end],  obs)
 
 
 
@@ -266,14 +268,15 @@ class Battery(gym.Env):
 		# if self.ts % 25 == 0:
 
 		# scale reward for quicker learning
-		ts_reward = ts_reward * 0.01		
+		ts_reward = ts_reward * 0.01	
+		print(f'ts_reward: {ts_reward}')	
 
 		# print(f'price: {ts_price}')
 		# ts_cost = (ts_price_kW * action_kw) - (self.alpha_d * abs(action_kw))
 		ts_cost = (ts_price_kW * action_kw)
 
 		info = {'ts_cost': ts_cost}
-		print(f'ts_cost: {ts_cost}')
+		# print(f'ts_cost: {ts_cost}')
 		# print(f'timestep-----------------------------------------------------------------+=======: {self.ts}')
 		# print(f'day_num-----------------------------------------------------------------+=======: {self.day_num}')
 
@@ -300,12 +303,13 @@ class Battery(gym.Env):
 		self.ep_pwr = 0
 
 		if self.game_over == True:
-			self.soc = 0.5
+			self.soc = 0.0
 
 		# print(f'timestep-----------------------------------------------------------------+=======: {self.ts}')
 		# print(f'day_num-----------------------------------------------------------------+=======: {self.day_num}')
 		# observations = np.append(self.ep_prices[self.ep + self.price_ref], self.soc)
-		observations = np.append(self.ep_prices[self.ts:self.ts+24], self.soc)
+		obs = np.append(self.ts / 24, self.soc)
+		observations = np.append(self.ep_prices[self.ts:self.ts+24], obs)
 
 		# if self.ts % 168 == 0:
 		# 	self.ts = 0
