@@ -107,7 +107,9 @@ class Battery(gym.Env):
 
 	def _next_soc(self, soc_t, efficiency, action, standby_loss):
 		e_ess = self.cr
-		if action < 0:
+		if np.around(soc_t, 2) == 0 and action == 0:
+			next_soc = soc_t
+		elif action < 0:
 			next_soc = soc_t - (1/e_ess) * efficiency * (action)  
 		elif action > 0:
 			next_soc = soc_t - (1/e_ess) * (1/efficiency) * (action)  
@@ -179,7 +181,7 @@ class Battery(gym.Env):
 		action_kw = (self.action_space[action] * self.pr)
 
 		# store action to kWh
-		action_kwh = action_kw 
+		action_kwh = action_kw
 
 		# calculate ohmic, charge and membrance resitances - open circuit voltage & total resitance
 		v_oc, r_tot = self.batt_deg.ss_circuit_model(current_soc)
@@ -190,21 +192,33 @@ class Battery(gym.Env):
 		# calculate efficiency of battery relevant to current charge and power 
 		efficiency = self.batt_deg.calc_efficiency(v_oc, r_tot, icur, action_kw)
 
+		# clip charge / discahrge relatiev to SoC limits
+		charge_lim = ((current_soc - 0) * self.cr) / (efficiency * 1)
+		discharge_lim = ((current_soc - 1) * self.cr) / (efficiency * 1)
+
+		# clip action to ensure within limits
+		action_kWh_clipped = np.clip(action_kwh, discharge_lim,  charge_lim)
+
 		# state of charge at end of period
-		next_soc = self._next_soc(current_soc, efficiency, action_kwh, self.standby_loss)
+		next_soc = self._next_soc(current_soc, efficiency, action_kWh_clipped, self.standby_loss)
 
 		# detemine if charge/discharge is out of bounds, i.e. <20% and >100% else fail episode
 		if next_soc < 0 or next_soc > 1.0:
-			self.done = True
-			self.game_over = True
-			ts_reward = -1
-			# ts_reward = ts_reward * 0.01	
-			# self.ep_end_kWh = current_soc * self.cr
-			obs = np.append(self.ts / 24, next_soc)
-			observations = np.append(self.ep_prices[self.ts:self.ts+24],  obs)
-			self.ts -= 1
-			info = {'ts_cost': 0}
-			return observations, ts_reward, self.done, info 
+			print('error - limits breached')
+			print(action_kWh_clipped)
+			print(current_soc)
+			print(next_soc)
+			exit()
+			# self.done = True
+			# self.game_over = True
+			# ts_reward = -500
+			# # ts_reward = ts_reward * 0.01	
+			# # self.ep_end_kWh = current_soc * self.cr
+			# obs = np.append(self.ts / 24, next_soc)
+			# observations = np.append(self.ep_prices[self.ts:self.ts+24],  obs)
+			# self.ts -= 1
+			# info = {'ts_cost': 0}
+			# return observations, ts_reward, self.done, info 
 
 
 		# get t+1 price, return (sample, 24hr, 1)
@@ -216,14 +230,14 @@ class Battery(gym.Env):
 		# ts_price = np.expand_dims(self.ep_prices[self.ts:self.ts+1],axis=-1)
 		# ts_reward =  np.clip((ts_price * (action_kw / self.pr)) - (self.alpha_d * (abs(action_kw) / self.pr)), -1,1)
 		# ts_reward =  np.squeeze(ts_price_kW * (action_kw / (self.action_space[-1]* self.pr))) - (self.alpha_d * (abs(action_kw) / (self.action_space[-1]* self.pr)))
-		ts_reward =  np.squeeze(ts_price_kW * action_kw)
+		ts_reward =  np.squeeze(ts_price_kW * action_kWh_clipped)
 
 		# print(ts_reward.shape)
 
 		
 
 		# collect power charge & discharge for episode
-		self.ep_pwr += abs(action_kw)
+		self.ep_pwr += abs(action_kWh_clipped)
 
 		# print(f'day_num: {self.day_num}')
 		# print(f'ts_reward: {ts_reward}')
@@ -268,8 +282,10 @@ class Battery(gym.Env):
 		# if self.ts % 25 == 0:
 
 		# scale reward for quicker learning
-		ts_reward = ts_reward * 0.01	
+		ts_reward = ts_reward / 100	
+
 		print(f'ts_reward: {ts_reward}')	
+		print(f'action: {action_kWh_clipped}')	
 
 		# print(f'price: {ts_price}')
 		# ts_cost = (ts_price_kW * action_kw) - (self.alpha_d * abs(action_kw))
@@ -303,7 +319,7 @@ class Battery(gym.Env):
 		self.ep_pwr = 0
 
 		if self.game_over == True:
-			self.soc = 0.0
+			self.soc = 0.5
 
 		# print(f'timestep-----------------------------------------------------------------+=======: {self.ts}')
 		# print(f'day_num-----------------------------------------------------------------+=======: {self.day_num}')
