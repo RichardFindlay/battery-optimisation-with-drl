@@ -72,8 +72,8 @@ class Battery(gym.Env):
 		self.scaler_transform = load(scaler_load)
 		scaler_load.close()
 
-		obs = np.append(self.ts, self.soc)
-		self.observation_space = np.append(np.zeros(24), obs)
+		
+		self.observation_space = np.append(np.zeros(24), self.soc)
 
 		self.action_space = np.linspace(-1, 1, num = self.num_actions , endpoint = True)
 
@@ -196,8 +196,16 @@ class Battery(gym.Env):
 		charge_lim = ((current_soc - 0) * self.cr) / (efficiency * 1)
 		discharge_lim = ((current_soc - 1) * self.cr) / (efficiency * 1)
 
+		print(charge_lim)
+		print(discharge_lim)
+		print(action_kwh)
+	
+
 		# clip action to ensure within limits
 		action_kWh_clipped = np.clip(action_kwh, discharge_lim,  charge_lim)
+
+		# round action to 4 sig figures
+		# action_kWh_clipped = np.around(action_kWh_clipped, 3)
 
 		# state of charge at end of period
 		next_soc = self._next_soc(current_soc, efficiency, action_kWh_clipped, self.standby_loss)
@@ -251,8 +259,8 @@ class Battery(gym.Env):
 		# 	price_index_start += 1
 		# 	price_index_end += 1
 		# print(f'ts_int: {self.ts}')
-		obs = np.append(self.ts / 24, next_soc)
-		observations = np.append(self.ep_prices[price_index_start:price_index_end],  obs)
+		# obs = np.append(self.ts / 24, next_soc)
+		observations = np.append(self.ep_prices[price_index_start:price_index_end],  next_soc)
 
 
 
@@ -282,14 +290,14 @@ class Battery(gym.Env):
 		# if self.ts % 25 == 0:
 
 		# scale reward for quicker learning
-		ts_reward = ts_reward / 100	
+		ts_reward = np.around(ts_reward / 100, 3)
 
 		print(f'ts_reward: {ts_reward}')	
 		print(f'action: {action_kWh_clipped}')	
 
 		# print(f'price: {ts_price}')
 		# ts_cost = (ts_price_kW * action_kw) - (self.alpha_d * abs(action_kw))
-		ts_cost = (ts_price_kW * action_kw)
+		ts_cost = (ts_price_kW * action_kWh_clipped)
 
 		info = {'ts_cost': ts_cost}
 		# print(f'ts_cost: {ts_cost}')
@@ -324,8 +332,8 @@ class Battery(gym.Env):
 		# print(f'timestep-----------------------------------------------------------------+=======: {self.ts}')
 		# print(f'day_num-----------------------------------------------------------------+=======: {self.day_num}')
 		# observations = np.append(self.ep_prices[self.ep + self.price_ref], self.soc)
-		obs = np.append(self.ts / 24, self.soc)
-		observations = np.append(self.ep_prices[self.ts:self.ts+24], obs)
+		# obs = np.append(self.ts / 24, self.soc)
+		observations = np.append(self.ep_prices[self.ts:self.ts+24], self.soc)
 
 		# if self.ts % 168 == 0:
 		# 	self.ts = 0
