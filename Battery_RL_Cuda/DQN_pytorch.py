@@ -122,7 +122,7 @@ class DQN_Agent():
 		with torch.no_grad():
 			labels_next = self.qnet_target(next_states).detach().max(1)[0].unsqueeze(1)
 
-		labels = rewards + (gamma * labels_next*(1-dones))
+		labels = rewards + (gamma * labels_next)
 
 		# print(labels_next)
 		# print(labels)

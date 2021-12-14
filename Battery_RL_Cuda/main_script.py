@@ -49,7 +49,7 @@ batch_size = 64 # 64 best
 gamma = 0.99
 tau = 1e-3
 # tau = 1
-update = 168 # 168 best also 100 for hard up date 
+update = 4 # 168 best also 100 for hard up date 
 
 
 dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed)
@@ -68,10 +68,10 @@ for ep in range(n_episodes):
 	
 	for step in range(time_range): 
 		# print('NEW TS')
-		print(f'step: {step}') 
+		# print(f'step: {step}') 
 		# print(f'total_step: {env.total_ts}') 
 		# print(f'day_num: {env.day_num}') 
-		print(cur_state)
+		# print(cur_state)
 
 		action = dqn_agent.action(cur_state, epsilon)
 		# print(f'action: {action}') 

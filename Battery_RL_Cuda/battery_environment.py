@@ -263,7 +263,7 @@ class Battery(gym.Env):
 		# 	price_index_end += 1
 		# print(f'ts_int: {self.ts}')
 		# obs = np.append(self.ts / 24, next_soc)
-		observations = np.append(self.ep_prices[price_index_start:price_index_end],  next_soc)
+		observations = np.append(self.ep_prices[price_index_start:price_index_end],  np.around(next_soc,4))
 
 
 
@@ -294,11 +294,12 @@ class Battery(gym.Env):
 
 		# scale reward for quicker learning
 		ts_reward = np.around(ts_reward / 100, 3)	
+		ts_reward = np.clip(ts_reward, -1, 1)
 
 		# print(f'ts_reward: {ts_reward}')	
 		# print(f'action: {action_kWh_clipped}')	
-		print(f'ts: {self.ts}')
-		print(f'day_num: {self.day_num}')
+		# print(f'ts: {self.ts}')
+		# print(f'day_num: {self.day_num}')
 
 		# print(f'price: {ts_price}')
 		# ts_cost = (ts_price_kW * action_kw) - (self.alpha_d * abs(action_kw))
@@ -358,7 +359,7 @@ class Battery(gym.Env):
 		self.ts = 0
 
 		
-		observations = np.append(self.ep_prices[self.ts:self.ts+24], self.soc)
+		observations = np.append(self.ep_prices[self.ts:self.ts+24], np.around(self.soc,4))
 
 		# if self.ts % 168 == 0:
 		# 	self.ts = 0
