@@ -45,11 +45,11 @@ seed = 100
 
 learning_rate = 25e-5 
 buffer_size = int(1e5)
-batch_size = 64 # 64 best
+batch_size = 32 # 64 best
 gamma = 0.99
 tau = 1e-3
 # tau = 1
-update = 4 # 168 best also 100 for hard up date 
+update = 8 # 168 best also 100 for hard up date 
 
 
 dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed)

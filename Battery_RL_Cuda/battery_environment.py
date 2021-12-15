@@ -81,7 +81,7 @@ class Battery(gym.Env):
 		self.action_space = np.linspace(-1, 1, num = self.num_actions , endpoint = True)
 
 		# intialise degradation class
-		self.batt_deg = BatteryDegradation(self.cr * 1000)
+		self.batt_deg = BatteryDegradation(self.cr * 1000) # watts as input
 
 		# load DA Price Predictor Pytorch Model
 		if os.path.isfile(self.torch_file):

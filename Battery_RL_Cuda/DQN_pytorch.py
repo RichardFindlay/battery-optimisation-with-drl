@@ -41,11 +41,8 @@ class Replay():
 
 	def sample(self):
 		""" randomly sample experiences from memory """
-		# experiences = random.sample(self.memory, k=self.batch_size)
-		# experiences = random.sample(self.memory, k=self.batch_size)
-
 		experiences = random.sample(self.memory, k=self.batch_size)
-
+      
 		states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().cuda()
 		actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().cuda()
 		rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().cuda()
@@ -91,13 +88,13 @@ class DQN_Agent():
 
 	def action(self, state, epsilion = 0):
 		""" return action for given state given current policy """
-		state = torch.from_numpy(state).float().cuda()
+		state = torch.from_numpy(state).float().unsqueeze(0).cuda()
 		self.qnet.eval()
 
 		with torch.no_grad():
 			action_values = self.qnet(state)
 
-		self.qnet.train()
+		self.qnet.train()    
 
 		# action selection relative to greedy action selection
 		if random.random() > epsilion:
@@ -117,12 +114,14 @@ class DQN_Agent():
 		# target model used in eval mode
 		self.qnet_target.eval()
 
-		predicted_targets = self.qnet(next_states).gather(1,actions)
+		predicted_targets = self.qnet(states).gather(1,actions)
+
 
 		with torch.no_grad():
 			labels_next = self.qnet_target(next_states).detach().max(1)[0].unsqueeze(1)
+ 
 
-		labels = rewards + (gamma * labels_next)
+		labels = rewards + (gamma * labels_next*(1-dones))
 
 		# print(labels_next)
 		# print(labels)
@@ -131,7 +130,7 @@ class DQN_Agent():
 		# exit()
 
 		loss = criterion(predicted_targets, labels).cuda()
-		print(f"loss: {loss}---------------------------------------------------------------+++++++++++++++++++------")
+		# print(f"loss: {loss}---------------------------------------------------------------+++++++++++++++++++------")
 		self.optimizer.zero_grad()
 		loss.backward()
 		self.optimizer.step()
