@@ -41,16 +41,13 @@ class Replay():
 
 	def sample(self):
 		""" randomly sample experiences from memory """
-		# experiences = random.sample(self.memory, k=self.batch_size)
-		# experiences = random.sample(self.memory, k=self.batch_size)
-
 		experiences = random.sample(self.memory, k=self.batch_size)
-
-		states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(device)
-		actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(device)
-		rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
-		next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(device)
-		dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(device)
+      
+		states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().cuda()
+		actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().cuda()
+		rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().cuda()
+		next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().cuda()
+		dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().cuda()
 
 		return (states,actions,rewards,next_states,dones)
 
@@ -60,13 +57,13 @@ class Replay():
 
 # DQN Agent
 class DQN_Agent():
-	def __init__(self, state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed):
+	def __init__(self, state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed, soft_update):
 		self.state_size = state_size
 		self.action_size = action_size
 
 		# Intialise q-networks
-		self.qnet = QNet(state_size, action_size, seed).to(device)
-		self.qnet_target = QNet(state_size, action_size, seed).to(device)
+		self.qnet = QNet(state_size, action_size, seed).cuda()
+		self.qnet_target = QNet(state_size, action_size, seed).cuda()
 
 		# define optimiser
 		self.optimizer = optim.Adam(self.qnet.parameters(), lr=learning_rate)
@@ -74,6 +71,7 @@ class DQN_Agent():
 		# Replay Memory 
 		self.memory = Replay(action_size, buffer_size, batch_size, seed)
 		self.t_step = 0
+		self.soft_update_bool = soft_update        
 
 	def step(self, state, action, reward, next_step, update, batch_size, gamma, tau, done):
 
@@ -83,7 +81,12 @@ class DQN_Agent():
 		# learn every 'x' time-steps
 		self.t_step = (self.t_step+1) % update
 
-		if self.t_step == 0:
+		if self.soft_update_bool == True:
+			if self.t_step == 0:
+				if len(self.memory) > batch_size:
+					experience = self.memory.sample()
+					self.learn(experience, gamma, tau)
+		else:
 			if len(self.memory) > batch_size:
 				experience = self.memory.sample()
 				self.learn(experience, gamma, tau)
@@ -91,13 +94,13 @@ class DQN_Agent():
 
 	def action(self, state, epsilion = 0):
 		""" return action for given state given current policy """
-		state = torch.from_numpy(state).float().to(device)
+		state = torch.from_numpy(state).float().unsqueeze(0).cuda()
 		self.qnet.eval()
 
 		with torch.no_grad():
 			action_values = self.qnet(state)
 
-		self.qnet.train()
+		self.qnet.train()    
 
 		# action selection relative to greedy action selection
 		if random.random() > epsilion:
@@ -107,6 +110,7 @@ class DQN_Agent():
 
 
 	def learn(self, experiences, gamma, tau):
+
 		states, actions, rewards, next_states, dones = experiences
 
 		criterion = torch.nn.MSELoss()
@@ -117,10 +121,12 @@ class DQN_Agent():
 		# target model used in eval mode
 		self.qnet_target.eval()
 
-		predicted_targets = self.qnet(next_states).gather(1,actions)
+		predicted_targets = self.qnet(states).gather(1,actions)
+
 
 		with torch.no_grad():
 			labels_next = self.qnet_target(next_states).detach().max(1)[0].unsqueeze(1)
+ 
 
 		labels = rewards + (gamma * labels_next*(1-dones))
 
@@ -130,15 +136,17 @@ class DQN_Agent():
 		# print(predicted_targets)
 		# exit()
 
-		loss = criterion(predicted_targets, labels).to(device)
-		print(f"loss: {loss}---------------------------------------------------------------+++++++++++++++++++------")
+		loss = criterion(predicted_targets, labels).cuda()
+		# print(f"loss: {loss}---------------------------------------------------------------+++++++++++++++++++------")
 		self.optimizer.zero_grad()
 		loss.backward()
 		self.optimizer.step()
 
 		# now update the target next weights
-		self.soft_update(self.qnet, self.qnet_target, tau)
-
+		if self.soft_update_bool == True:      
+			self.soft_update(self.qnet, self.qnet_target, tau)
+		elif (self.soft_update_bool == False) and self.t_step == 0:
+			self.soft_update(self.qnet, self.qnet_target, tau=1)
 
 	def soft_update(self, local_model, target_model, tau):
 

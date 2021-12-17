@@ -35,8 +35,8 @@ time_range = 168
 
 epsilon = 1.0
 epsilon_end = 0.01
-# epsilon_decay = 0.9996
-epsilon_decay = 0.99965
+epsilon_decay = 0.9996
+# epsilon_decay = 0.99965
 
 env = Battery(env_settings)
 state_size = (env.observation_space.shape[0])
@@ -47,12 +47,12 @@ learning_rate = 25e-5
 buffer_size = int(1e5)
 batch_size = 32 # 64 best
 gamma = 0.99
-tau = 1e-3
-# tau = 1
-update = 8 # 168 best also 100 for hard up date 
+# tau = 1e-3
+tau = 1
+update = 10000 # 168 best also 100 for hard up date 
 
 
-dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed)
+dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed, soft_update=False)
 scores = np.empty((n_episodes)) #list of rewards from each episode
 profits = np.empty((n_episodes))
 

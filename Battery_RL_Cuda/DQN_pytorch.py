@@ -57,7 +57,7 @@ class Replay():
 
 # DQN Agent
 class DQN_Agent():
-	def __init__(self, state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed):
+	def __init__(self, state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed, soft_update):
 		self.state_size = state_size
 		self.action_size = action_size
 
@@ -71,6 +71,7 @@ class DQN_Agent():
 		# Replay Memory 
 		self.memory = Replay(action_size, buffer_size, batch_size, seed)
 		self.t_step = 0
+		self.soft_update_bool = soft_update        
 
 	def step(self, state, action, reward, next_step, update, batch_size, gamma, tau, done):
 
@@ -80,7 +81,12 @@ class DQN_Agent():
 		# learn every 'x' time-steps
 		self.t_step = (self.t_step+1) % update
 
-		if self.t_step == 0:
+		if self.soft_update_bool == True:
+			if self.t_step == 0:
+				if len(self.memory) > batch_size:
+					experience = self.memory.sample()
+					self.learn(experience, gamma, tau)
+		else:
 			if len(self.memory) > batch_size:
 				experience = self.memory.sample()
 				self.learn(experience, gamma, tau)
@@ -104,6 +110,7 @@ class DQN_Agent():
 
 
 	def learn(self, experiences, gamma, tau):
+
 		states, actions, rewards, next_states, dones = experiences
 
 		criterion = torch.nn.MSELoss()
@@ -136,8 +143,10 @@ class DQN_Agent():
 		self.optimizer.step()
 
 		# now update the target next weights
-		self.soft_update(self.qnet, self.qnet_target, tau)
-
+		if self.soft_update_bool == True:      
+			self.soft_update(self.qnet, self.qnet_target, tau)
+		elif (self.soft_update_bool == False) and self.t_step == 0:
+			self.soft_update(self.qnet, self.qnet_target, tau=1)
 
 	def soft_update(self, local_model, target_model, tau):
 
