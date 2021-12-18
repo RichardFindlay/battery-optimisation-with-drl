@@ -27,7 +27,9 @@ test_load.close()
 model.eval()
 loss = 0 
 
-inputs = np.moveaxis(test_data['X_test'], -1, 1)
+data_set = 'train'
+
+inputs = np.moveaxis(test_data[f'X_{data_set}'], -1, 1)
 
 inputs = torch.tensor(inputs, dtype=torch.float64)
 
@@ -37,12 +39,12 @@ with torch.no_grad():
 
 
 
-y_true = test_data['y_test']
+y_true = test_data[f'y_{data_set}']
 
-print(test_data['X_test_times'][502])
+print(test_data[f'X_{data_set}_times'][502])
 print('*********************************')
-print(test_data['y_test_times'][502])
-print(test_data['X_test'].shape)
+print(test_data[f'y_{data_set}_times'][502])
+print(test_data[f'X_{data_set}'].shape)
 print(y_true.shape)
 print(prediction.shape)
 
