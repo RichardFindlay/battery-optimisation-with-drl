@@ -4,11 +4,12 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 from collections import namedtuple, deque 
+from noise_linear import NoisyLinear
 import random
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# define model architecture
+# define model architecture (Vanilla)
 class QNet(nn.Module):
 	""" Policy Model """
 	def __init__(self, state_size, action_size, seed, fc1_units=16, fc2_units=16, fc3_units=16):
@@ -25,6 +26,28 @@ class QNet(nn.Module):
 		x = F.relu(self.dense2(x))
 		x = F.relu(self.dense3(x))
 		return self.dense4(x)
+
+# define model architecture (NN)
+class NNQNet(nn.Module):
+	""" Policy Model """
+	def __init__(self, state_size, action_size, seed, fc1_units=16, fc2_units=16, fc3_units=16):
+		super(NNQNet, self).__init__()
+		self.seed = torch.manual_seed(seed)
+		self.dense1 = nn.Linear(state_size, fc1_units)
+		self.dense2 = nn.Linear(fc1_units, fc2_units)
+		self.dense3 = nn.Linear(fc2_units, fc3_units)
+		self.dense4 = NoisyLinear(fc3_units, action_size)
+
+	def forward(self, states):
+		""" map state values to action values """
+		x = F.relu(self.dense1(states))
+		x = F.relu(self.dense2(x))
+		x = F.relu(self.dense3(x))
+		return self.dense4(x)
+
+	def reset_noise(self):
+		self.dense3 .reset_noise()
+		self.dense4.reset_noise()
 
 # replay buffer object
 class Replay():
@@ -57,13 +80,19 @@ class Replay():
 
 # DQN Agent
 class DQN_Agent():
-	def __init__(self, state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed, soft_update):
+	def __init__(self, state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed, soft_update, qnet_type='vanilla'):
 		self.state_size = state_size
 		self.action_size = action_size
+		self.qnet_type = qnet_type
 
 		# Intialise q-networks
-		self.qnet = QNet(state_size, action_size, seed).cuda()
-		self.qnet_target = QNet(state_size, action_size, seed).cuda()
+		if self.qnet_type == 'vanilla':
+			self.qnet = QNet(state_size, action_size, seed).cuda()
+			self.qnet_target = QNet(state_size, action_size, seed).cuda()
+		if self.qnet_type == 'NN':
+			self.qnet = NNQNet(state_size, action_size, seed).cuda()
+			self.qnet_target = NNQNet(state_size, action_size, seed).cuda()
+
 
 		# define optimiser
 		self.optimizer = optim.Adam(self.qnet.parameters(), lr=learning_rate)
@@ -147,6 +176,10 @@ class DQN_Agent():
 			self.soft_update(self.qnet, self.qnet_target, tau)
 		elif (self.soft_update_bool == False) and self.t_step == 0:
 			self.soft_update(self.qnet, self.qnet_target, tau=1)
+
+		# if self.qnet_type == 'NN':			
+		# 	self.qnet.reset_noise()
+		# 	self.qnet_target.reset_noise()
 
 	def soft_update(self, local_model, target_model, tau):
 
