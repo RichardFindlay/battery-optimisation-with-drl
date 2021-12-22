@@ -105,7 +105,8 @@ var x_input,y_input,
     svg_input_Yaxis,
     dataset,
     height,
-    margin
+    margin,
+    length
 
 
 
@@ -113,15 +114,16 @@ var x_input,y_input,
 var svg_100 = d3.select("#my_dataviz100")
     .append("svg")
     .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)   
-
+    .attr("height", height + margin.top + margin.bottom)  
+    .attr("transform", "translate(" + 20 + "," + 0 + ")"); 
 
 
 
 ////// INPUT LINE SETUP //////////
 
 x_input = d3.scaleLinear()
-  .range([40, width + 25])
+  .range([0, width])
+  .clamp(true);
   // .domain([0, 100])
 
 y_input = d3.scaleLinear()
@@ -140,6 +142,8 @@ console.log(dataset)
 
 
 
+
+
 // Add the line
 // var path = svg.append("path")
 //     .attr("d", line(data))
@@ -148,7 +152,6 @@ console.log(dataset)
 //     .attr("stroke", "darkgrey");
 
 
-console.log("Richard".toLowerCase())
 ////////// slider //////////
 
 var moving = false;
@@ -157,14 +160,21 @@ var targetValue = width;
 
 var playButton = d3.select("#play-button");
     
-var x = d3.scaleTime()
-    .domain([startDate, endDate])
-    .range([0, targetValue])
+// var x = d3.scaleTime()
+//     .domain([startDate, endDate])
+//     .range([0, targetValue])
+//     .clamp(true);
+
+
+var x = d3.scaleLinear()
+    // .domain([0, 100])
+    .range([0, width])
     .clamp(true);
+
 
 var slider = svg.append("g")
     .attr("class", "slider")
-    .attr("transform", "translate(" + margin.left + "," + height/5 + ")");
+    .attr("transform", "translate(" + 20 + "," + height/5 + ")");
 
 slider.append("line")
     .attr("class", "track")
@@ -179,22 +189,24 @@ slider.append("line")
         .on("start drag", function() {
           currentValue = d3.event.x;
           console.log(currentValue)
-          offset = x.invert(currentValue)
-          update(x.invert(currentValue), offset); 
+          // console.log(currentValue)
+          update_offset(currentValue)
+          // offset = x.invert(currentValue)
+          update(x.invert(currentValue)); 
         })
     );
 
 slider.insert("g", ".track-overlay")
     .attr("class", "ticks")
-    .attr("transform", "translate(0," + 18 + ")")
+    .attr("transform", "translate(0," + 0 + ")")
   .selectAll("text")
-    .data(x.ticks(10))
+    .data(x.ticks(20))
     .enter()
     .append("text")
     .attr("x", x)
-    .attr("y", 10)
+    .attr("y", 20)
     .attr("text-anchor", "middle")
-    .text(function(d) { return formatDateIntoYear(d); });
+    .text(function(d) { return d; });
 
 var handle = slider.insert("circle", ".track-overlay")
     .attr("class", "handle")
@@ -242,8 +254,25 @@ d3.csv(file, prepare, function(data) {
   drawPlot(dataset);
 
 
+  // instantiate line graph plot
+  var path = svg_100.append("path")
+    .datum(data)
+    .attr("class", "line")
+    .attr("fill", "none")
+    .attr("fill-opacity", 0.2)
+    .attr("stroke", "steelblue")
+    .attr("stroke-width", 1)
+    .attr("d", input_line(data));
 
-  
+  var length = path.node().getTotalLength();
+
+  console.log("intial")
+  console.log(length)
+
+  path.attr("stroke-dasharray", length + " " + length)
+    .attr("stroke-dashoffset", length - length);
+
+
   playButton
     .on("click", function() {
     var button = d3.select(this);
@@ -257,11 +286,19 @@ d3.csv(file, prepare, function(data) {
       timer = setInterval(step, 100);
       button.text("Pause");
     }
-    console.log("Slider moving: " + moving);
+    // console.log("Slider moving: " + moving);
   })
 
     d3.select(window).on('resize', resize);
 })
+
+
+
+
+
+
+
+
 
 
 function prepare(d) {
@@ -279,11 +316,11 @@ function step() {
     clearInterval(timer);
     // timer = 0;
     playButton.text("Play");
-    console.log("Slider moving: " + moving);
+    // console.log("Slider moving: " + moving);
   }
 }
 
-function drawPlot(data, offset) {
+function drawPlot(data) {
   var locations = plot.selectAll(".location")
     .data(data);
 
@@ -322,25 +359,27 @@ function drawPlot(data, offset) {
     svg_input_Yaxis = svg_100.append("g")
       .attr("class", "y axis")
       .call(yAxis)
-      .select(".domain").remove();
+
+
+      // .select(".domain").remove();
 
    
 
     // Add the line path.
-    var path = svg_100.append("path")
-      .datum(data)
-      .attr("class", "line")
-      .attr("fill", "none")
-      .attr("fill-opacity", 0.2)
-      .attr("stroke", "steelblue")
-      .attr("stroke-width", 1)
-      .attr("d", input_line(data));
+   //  var path = svg_100.append("path")
+   //    .datum(data)
+   //    .attr("class", "line")
+   //    .attr("fill", "none")
+   //    .attr("fill-opacity", 0.2)
+   //    .attr("stroke", "steelblue")
+   //    .attr("stroke-width", 1)
+   //    .attr("d", input_line(data));
 
 
-   const length = path.node().getTotalLength();
+   // const length = path.node().getTotalLength();
 
-    path.attr("stroke-dasharray", length + " " + length)
-      .attr("stroke-dashoffset", length - offset);
+   //  path.attr("stroke-dasharray", length + " " + length)
+   //    .attr("stroke-dashoffset", length - offset);
 
 
 
@@ -352,7 +391,7 @@ function drawPlot(data, offset) {
 
 
 
-function update(h, offset) {
+function update(h) {
   // update position and text of label according to slider scale
   handle.attr("cx", x(h));
   label
@@ -360,10 +399,10 @@ function update(h, offset) {
     .text(formatDate(h));
 
   // filter data set and redraw plot
-  var newData = dataset.filter(function(d) {
-    return d.date < h;
-  })
-  drawPlot(newData, offset);
+  // var newData = dataset.filter(function(d) {
+  //   return d.date < h;
+  // })
+  // drawPlot(newData);
 }
 
 
@@ -399,12 +438,50 @@ var resize = function(e) {
 
   // update slider /////////////////////////////////////////////////////////
 
-
-
-
-
-
 }
+
+
+function lineFiltered(data) {
+  return line(data.filter(function (d) { return !!d }))
+}
+
+
+
+function update_offset(offset) {
+
+  width = parseInt(d3.select('#my_dataviz100').style('width'), 10)
+
+  // dimensions = width_check(width, height)
+  // main_graph_width = dimensions[0]
+  // buffer = dimensions[1]
+  // output_graph_width = width - margin.left - margin.right
+
+  // d3.select("#my_dataviz100").select("svg").attr("width", width)
+  // // svg_100.attr("width", width)
+  // x_input.range([40, output_graph_width + 25]);
+  // y_input.range([height, 0]);
+
+  // xAxis.scale(x_input);
+  // yAxis.scale(y_input);
+
+  // svg_input_Xaxis.call(xAxis)
+  // svg_input_Yaxis.call(yAxis)
+
+  // svg_100.select(".x.axis").call(xAxis)
+  // svg_100.select('.line').attr("d", input_line(dataset))
+
+  const length = svg_100.select('.line').node().getTotalLength()
+
+  console.log("new")
+  console.log(length)
+
+  svg_100.select('.line')
+      // .attr("stroke-dasharray", length + " " + length)
+      .attr("stroke-dashoffset", length - offset);
+
+
+
+} 
 
 
 
@@ -412,3 +489,18 @@ var resize = function(e) {
 
 </script>
 </body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
