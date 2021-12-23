@@ -27,7 +27,7 @@
       color: white;
       margin: 0;
       padding: 0 12px;
-      width: 60px;
+      width: 80px;
       cursor: pointer;
       height: 30px;
     }
@@ -48,8 +48,8 @@
 
     .track {
       stroke: #000;
-      stroke-opacity: 0.3;
-      stroke-width: 10px;
+      stroke-opacity: 0.1;
+      stroke-width: 5px;
     }
 
     .track-inset {
@@ -76,7 +76,7 @@
 <body>
     <div id="my_dataviz100"></div>
     <div id="vis"></div>
-    <button id="play-button">Play</button>
+    <button id="play-button">Simulate</button>
 <script>
 
 // Adapted from: https://bl.ocks.org/officeofjane/47d2b0bfeecfcb41d2212d06d095c763
@@ -95,8 +95,8 @@ var svg = d3.select("#vis")
     .append("svg")
     .attr("width", "100%")
     .attr("height", "100%")
-    .attr("viewBox", "0 0 1100 300")
-    .attr("preserveAspectRatio", "xMinYMin meet");
+    // .attr("viewBox", [-20, -10, width + 40, 100])
+    // .attr("preserveAspectRatio", "xMinYMin meet");
     // .attr("width", width + margin.left + margin.right)
     // .attr("height", height + margin.top + margin.bottom);  
 
@@ -138,7 +138,7 @@ input_line = d3.line()
                 .x(function(d) { return x_input(d.id) })
                 .y(function(d) { return y_input(d.test_data) })
 
-console.log(dataset)
+
 
 
 
@@ -167,9 +167,10 @@ var playButton = d3.select("#play-button");
 
 
 var x = d3.scaleLinear()
-    // .domain([0, 100])
+    // .domain([0, 6400])
     .range([0, width])
     .clamp(true);
+
 
 
 var slider = svg.append("g")
@@ -188,13 +189,15 @@ slider.append("line")
         .on("start.interrupt", function() { slider.interrupt(); })
         .on("start drag", function() {
           currentValue = d3.event.x;
-          console.log(currentValue)
+          // console.log(x_input.invert(currentValue))
           // console.log(currentValue)
-          update_offset(currentValue)
+          update_offset(x.invert(currentValue))
           // offset = x.invert(currentValue)
           update(x.invert(currentValue)); 
         })
-    );
+    )
+
+
 
 slider.insert("g", ".track-overlay")
     .attr("class", "ticks")
@@ -203,7 +206,7 @@ slider.insert("g", ".track-overlay")
     .data(x.ticks(20))
     .enter()
     .append("text")
-    .attr("x", x)
+    .attr("x", x_input)
     .attr("y", 20)
     .attr("text-anchor", "middle")
     .text(function(d) { return d; });
@@ -219,25 +222,7 @@ var label = slider.append("text")
     .attr("transform", "translate(0," + (-25) + ")")
 
 
-var slider = d3
-  .sliderHorizontal()
-  .min(0)
-  .max(10)
-  .step(1)
-  .width(width)
-  .displayValue(true)
-  .on('onchange', (val) => {
-    console.log(val)
-    // drawPlot(data, val * 100)
-  });
 
-d3.select('#vis')
-  .append('svg')
-  .attr('width', width + 50)
-  .attr('height', 100)
-  .append('g')
-  .attr('transform', 'translate(30,30)')
-  .call(slider);
 
 
  
@@ -266,11 +251,13 @@ d3.csv(file, prepare, function(data) {
 
   var length = path.node().getTotalLength();
 
-  console.log("intial")
-  console.log(length)
+  // console.log("intial")
+  // console.log(length)
 
   path.attr("stroke-dasharray", length + " " + length)
-    .attr("stroke-dashoffset", length - length);
+    .attr("stroke-dashoffset", 0);
+
+  x.domain([0, length])
 
 
   playButton
@@ -279,17 +266,18 @@ d3.csv(file, prepare, function(data) {
     if (button.text() == "Pause") {
       moving = false;
       clearInterval(timer);
+      console.log(timer)
       // timer = 0;
-      button.text("Play");
+      button.text("Simulate");
     } else {
       moving = true;
-      timer = setInterval(step, 100);
+      timer = setInterval(step, 50);
       button.text("Pause");
     }
     // console.log("Slider moving: " + moving);
   })
 
-    d3.select(window).on('resize', resize);
+    // d3.select(window).on('resize', resize);
 })
 
 
@@ -308,14 +296,18 @@ function prepare(d) {
 }
   
 function step() {
-  update(x.invert(currentValue));
-  currentValue = currentValue + (targetValue/151);
+  console.log("step")
+  console.log(x.invert(currentValue))
+  console.log(targetValue)
+  update(x.invert(currentValue))
+  update_offset(x.invert(currentValue));
+  currentValue = currentValue + (targetValue/250);
   if (currentValue > targetValue) {
     moving = false;
     currentValue = 0;
     clearInterval(timer);
     // timer = 0;
-    playButton.text("Play");
+    playButton.text("Simulate");
     // console.log("Slider moving: " + moving);
   }
 }
@@ -346,8 +338,9 @@ function drawPlot(data) {
 
 
     // INPUT GRAPH
-    x_input.domain([0, d3.max(data, function(d) { return +d.id; })])
-    y_input.domain([0, d3.max(data, function(d) { return +d.test_data; })])
+  x_input.domain([0, d3.max(data, function(d) { return +d.id; })])
+  y_input.domain([0, d3.max(data, function(d) { return +d.test_data; })])
+
 
     svg_input_Xaxis = svg_100.append("g")
       .attr("class", "x axis")
@@ -472,8 +465,8 @@ function update_offset(offset) {
 
   const length = svg_100.select('.line').node().getTotalLength()
 
-  console.log("new")
-  console.log(length)
+  // console.log("new")
+  // console.log(length)
 
   svg_100.select('.line')
       // .attr("stroke-dasharray", length + " " + length)
