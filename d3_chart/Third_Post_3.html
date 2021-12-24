@@ -131,7 +131,7 @@ y_input = d3.scaleLinear()
   .range([height, 0]);
 
 xAxis = d3.axisBottom().scale(x_input).tickSizeOuter(0).tickValues([]);
-yAxis = d3.axisLeft().scale(y_input).tickSizeOuter(0).tickValues([]);
+yAxis = d3.axisLeft().scale(y_input);
 
 input_line = d3.line()
                 .curve(d3.curveBasis)
@@ -186,7 +186,7 @@ slider.append("line")
   .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
     .attr("class", "track-overlay")
     .call(d3.drag()
-        .on("start.interrupt", function() { slider.interrupt(); })
+        // .on("start.interrupt", function() { slider.interrupt(); })
         .on("start drag", function() {
           currentValue = d3.event.x;
           // console.log(x_input.invert(currentValue))
@@ -259,6 +259,35 @@ d3.csv(file, prepare, function(data) {
 
   x.domain([0, length])
 
+  //  plot bars for soc
+  var x_bar = d3.scaleBand()
+  .range([ 0, width])
+  .domain(data.map(function(d) { return d.id; }))
+  .padding(0.2);
+svg_100.append("g")
+  .attr("transform", "translate(0," + height + ")")
+  .call(d3.axisBottom(x_bar))
+
+  // Add Y axis
+  var y_bar = d3.scaleLinear()
+    .domain([0, 1])
+    .range([ height, 0]);
+  svg_100.append("g")
+    .call(d3.axisRight(y_bar));
+
+  svg_100.selectAll("mybar")
+  .data(data)
+  .enter()
+  .append("rect")
+    .attr("x", function(d) { return x_bar(d.id); })
+    .attr("y", function(d) { return y_bar(d.soc); })
+    .attr("width", x_bar.bandwidth())
+    .attr("height", function(d) { return height - y_bar(d.soc); })
+    .attr("fill", "#69b3a2")
+    .attr("opacity", "0.2")
+
+
+
 
   playButton
     .on("click", function() {
@@ -266,8 +295,7 @@ d3.csv(file, prepare, function(data) {
     if (button.text() == "Pause") {
       moving = false;
       clearInterval(timer);
-      console.log(timer)
-      // timer = 0;
+      timer = 0;
       button.text("Simulate");
     } else {
       moving = true;
@@ -296,13 +324,20 @@ function prepare(d) {
 }
   
 function step() {
+  if (currentValue < 0) {
+    currentValue = 0
+  }
   console.log("step")
-  console.log(x.invert(currentValue))
-  console.log(targetValue)
-  update(x.invert(currentValue))
-  update_offset(x.invert(currentValue));
   currentValue = currentValue + (targetValue/250);
+  console.log(x.invert(currentValue))
+
+  update(x.invert(currentValue))
+  update_offset(x.invert(currentValue))
+  console.log(currentValue)
+  console.log(targetValue)
+
   if (currentValue > targetValue) {
+    console.log("here")
     moving = false;
     currentValue = 0;
     clearInterval(timer);
