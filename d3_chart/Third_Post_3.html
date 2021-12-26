@@ -144,6 +144,13 @@ input_line = d3.line()
 
 
 
+
+
+
+
+
+
+
 // Add the line
 // var path = svg.append("path")
 //     .attr("d", line(data))
@@ -171,6 +178,28 @@ var x = d3.scaleLinear()
     .range([0, width])
     .clamp(true);
 
+var x_ref = d3.scaleLinear()
+    .domain([0, 111])
+    .range([0, width])
+    .clamp(true);
+
+
+
+
+var x_bar = d3.scaleBand()
+  .range([ 0, width])
+
+var y_bar = d3.scaleLinear()
+  .domain([0, 1])
+  .range([ height/2, 0]);
+
+
+xAxis_bar_soc = d3.axisBottom().scale(x_bar);
+yAxis_bar_soc = d3.axisRight().scale(y_bar);
+
+
+
+
 
 
 var slider = svg.append("g")
@@ -189,9 +218,12 @@ slider.append("line")
         // .on("start.interrupt", function() { slider.interrupt(); })
         .on("start drag", function() {
           currentValue = d3.event.x;
+          currentValue_bar = d3.event.x;
+          console.log(x_ref.invert(currentValue_bar))
           // console.log(x_input.invert(currentValue))
           // console.log(currentValue)
           update_offset(x.invert(currentValue))
+          soc_bar_update(x_ref.invert(currentValue_bar))
           // offset = x.invert(currentValue)
           update(x.invert(currentValue)); 
         })
@@ -230,12 +262,18 @@ var label = slider.append("text")
 
 var dataset;
 
-var plot = svg.append("g")
+var plot = svg_100.append("g")
     .attr("class", "plot")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
 d3.csv(file, prepare, function(data) {
   dataset = data;
+
+    //  plot bars for soc
+  x_bar.domain(data.map(function(d) { return d.id; }))
+    .padding(0.2);
+
+
   drawPlot(dataset);
 
 
@@ -259,32 +297,18 @@ d3.csv(file, prepare, function(data) {
 
   x.domain([0, length])
 
-  //  plot bars for soc
-  var x_bar = d3.scaleBand()
-  .range([ 0, width])
-  .domain(data.map(function(d) { return d.id; }))
-  .padding(0.2);
-svg_100.append("g")
-  .attr("transform", "translate(0," + height + ")")
-  .call(d3.axisBottom(x_bar))
 
-  // Add Y axis
-  var y_bar = d3.scaleLinear()
-    .domain([0, 1])
-    .range([ height, 0]);
-  svg_100.append("g")
-    .call(d3.axisRight(y_bar));
 
-  svg_100.selectAll("mybar")
-  .data(data)
-  .enter()
-  .append("rect")
-    .attr("x", function(d) { return x_bar(d.id); })
-    .attr("y", function(d) { return y_bar(d.soc); })
-    .attr("width", x_bar.bandwidth())
-    .attr("height", function(d) { return height - y_bar(d.soc); })
-    .attr("fill", "#69b3a2")
-    .attr("opacity", "0.2")
+  // svg_100.selectAll("mybar")
+  // .data(data)
+  // .enter()
+  // .append("rect")
+  //   .attr("x", function(d) { return x_bar(d.id); })
+  //   .attr("y", function(d) { return y_bar(d.soc); })
+  //   .attr("width", x_bar.bandwidth())
+  //   .attr("height", function(d) { return height/2 - y_bar(d.soc); })
+  //   .attr("fill", "#69b3a2")
+  //   .attr("opacity", "0.2")
 
 
 
@@ -347,69 +371,53 @@ function step() {
   }
 }
 
+
+
+svg_100.append("g")
+  .attr("transform", "translate(0," + height/2 + ")")
+  .call(d3.axisBottom(x_bar))
+
+// Add Y axis
+svg_100.append("g")
+  .call(d3.axisRight(y_bar));
+
+
+svg_input_Xaxis = svg_100.append("g")
+  .attr("class", "x axis")
+  .attr("transform", "translate(0," + height + ")")
+  .call(xAxis);
+
+  // .select(".domain").remove();
+
+svg_input_Yaxis = svg_100.append("g")
+  .attr("class", "y axis")
+  .call(yAxis)
+
+
+
+
 function drawPlot(data) {
-  var locations = plot.selectAll(".location")
+  var locations = svg_100.selectAll(".location")
     .data(data);
 
+
   // if filtered dataset has more circles than already existing, transition new ones in
-  locations.enter()
-    .append("circle")
-    .attr("class", "location")
-    .attr("cx", function(d) { return x(d.date); })
-    .attr("cy", height/2)
-    .style("fill", function(d) { return d3.hsl(d.date/1000000000, 0.8, 0.8)})
-    .style("stroke", function(d) { return d3.hsl(d.date/1000000000, 0.7, 0.7)})
-    .style("opacity", 0.5)
-    .attr("r", 8)
-      .transition()
-      .duration(400)
-      .attr("r", 25)
-        .transition()
-        .attr("r", 8);
+  locations
+    .enter()
+    .append("rect")
+      .attr("x", function(d) { return x_bar(d.id); })
+      .attr("y", function(d) { return y_bar(d.soc); })
+      .attr("width", x_bar.bandwidth())
+      .attr("height", function(d) { return height/2 - y_bar(d.soc); })
+      .attr("fill", "#69b3a2")
+      .attr("opacity", "0.2")
 
-  // if filtered dataset has less circles than already existing, remove excess
-  locations.exit()
-    .remove();
+  // // if filtered dataset has less circles than already existing, remove excess
+  locations.exit().remove()
 
-
-    // INPUT GRAPH
+  // INPUT GRAPH
   x_input.domain([0, d3.max(data, function(d) { return +d.id; })])
   y_input.domain([0, d3.max(data, function(d) { return +d.test_data; })])
-
-
-    svg_input_Xaxis = svg_100.append("g")
-      .attr("class", "x axis")
-      .attr("transform", "translate(0," + height + ")")
-      .call(xAxis);
-
-      // .select(".domain").remove();
-
-    svg_input_Yaxis = svg_100.append("g")
-      .attr("class", "y axis")
-      .call(yAxis)
-
-
-      // .select(".domain").remove();
-
-   
-
-    // Add the line path.
-   //  var path = svg_100.append("path")
-   //    .datum(data)
-   //    .attr("class", "line")
-   //    .attr("fill", "none")
-   //    .attr("fill-opacity", 0.2)
-   //    .attr("stroke", "steelblue")
-   //    .attr("stroke-width", 1)
-   //    .attr("d", input_line(data));
-
-
-   // const length = path.node().getTotalLength();
-
-   //  path.attr("stroke-dasharray", length + " " + length)
-   //    .attr("stroke-dashoffset", length - offset);
-
-
 
 
 }
@@ -427,11 +435,28 @@ function update(h) {
     .text(formatDate(h));
 
   // filter data set and redraw plot
-  // var newData = dataset.filter(function(d) {
-  //   return d.date < h;
-  // })
+  var newData = dataset.filter(function(d) {
+    return d.id < h;
+  })
   // drawPlot(newData);
 }
+
+
+function soc_bar_update(h) {
+
+  // filter data set and redraw plot
+  var newData = dataset.filter(function(d) {
+    // console.log(d.id)
+    // console.log(h)
+    return d.id < h;
+  })
+
+  console.log(newData)
+
+  drawPlot(newData);
+
+}
+
 
 
 
