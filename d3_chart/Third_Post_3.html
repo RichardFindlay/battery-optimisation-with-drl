@@ -92,10 +92,17 @@ var margin = {top:50, right:50, bottom:0, left:50},
     width = 1100 - margin.left - margin.right,
     height = 300 - margin.top - margin.bottom;
 
+
+var aspectRatio= '16:9';
+var viewBox = '0 0 ' + aspectRatio.split(':').join(' ');
+
+
+
 var svg = d3.select("#vis")
     .append("svg")
     .attr("width", "100%")
     .attr("height", "100%")
+
     // .attr("viewBox", [-20, -10, width + 40, 100])
     // .attr("preserveAspectRatio", "xMinYMin meet");
     // .attr("width", width + margin.left + margin.right)
@@ -146,8 +153,8 @@ input_line = d3.line()
 
 input_subline = d3.line()
                 .curve(d3.curveBasis)
-                .x(function(d) { return d.x })
-                .y(function(d) { return d.y })
+                .x(function(d) { return d.id })
+                .y(function(d) { return d.test_data })
 
 
 
@@ -227,7 +234,8 @@ slider.append("line")
     .call(d3.drag()
         // .on("start.interrupt", function() { slider.interrupt(); })
         .on("start drag", function() {
-          currentValue = d3.mouse(this)[0];
+          currentValue_mouse = d3.mouse(this);
+          currentValue = d3.mouse(this)[0]
           currentValue_bar = d3.event.x;
 
           // console.log(x(currentValue))
@@ -238,7 +246,9 @@ slider.append("line")
           // offset = x.invert(currentValue)
           update(x.invert(currentValue))
           soc_bar_update(x_ref.invert(currentValue))
-          mousemoved.call(this);
+
+
+          mousemoved(currentValue_mouse[0]);
         })
 
         
@@ -324,18 +334,20 @@ var label = slider.append("text")
 
   updateSubPath(subPathData);
 
-var bisect = d3.bisector(function(d) { return d.id; }).left;
+var bisect = d3.bisector(function(d) { return d.test_data; }).left;
 
-function mousemoved() {
+function mousemoved(current_coords) {
 
-    d3.select(d3.select(".line"))
-    var m = d3.mouse(this);
+    // d3.select(d3.select(".slider"))
     // var m = d3.mouse(this);
-    mouse_coord = {
-        "id": m[0],
-        "test_data": m[1]
-    }
+    // var m = d3.mouse(this);
+    // console.log(current_coords)
 
+    mouse_coord = {
+        "id": current_coords,
+        // "test_data": current_coords[1]
+    }
+    // console.log(mouse_coord.id)
   
     subPathData = [
         []
@@ -349,21 +361,42 @@ function mousemoved() {
 
 
         if ((x_input(coord_id) <= mouse_coord.id)) {
-            subPathData.push({'id': coord_id, 'test_data': coord_test_data});
+            subPathData[0].push({'id': coord_id, 'test_data': coord_test_data});
         }
     }
     
     // console.log(x_input(dataset[10]['id']))
-    mouse_coord.id = x_input.invert(mouse_coord.id)
-    mouse_coord.test_data = y_input.invert(mouse_coord.test_data)
-    subPathData.push(mouse_coord);
 
-    var test = bisect(dataset, mouse_coord.id, 0);
+
+
+    pathLength = d3.select(".line").node().getTotalLength()
+
+      var x = mouse_coord.id; 
+      var beginning = x, end = pathLength, target;
+  while (true) {
+    target = Math.floor((beginning + end) / 2);
+    pos = d3.select(".line").node().getPointAtLength(target);
+    // console.log(pos)
+    if ((target === end || target === beginning) && pos.x !== x) {
+        break;
+    }
+    if (pos.x > x)      end = target;
+    else if (pos.x < x) beginning = target;
+    else                break; //position found
+  }
     
-    console.log(test)
+    // console.log(y_input.invert(pos.y))
+    
 
     // console.log(x_input.invert(mouse_coord.id))
     // console.log(y_input.invert(mouse_coord.test_data))
+    mouse_coord.id = String(x_input.invert(mouse_coord.id))
+    mouse_coord.test_data = String(y_input.invert(pos.y))
+    subPathData[0].push(mouse_coord);
+
+    // console.log(mouse_coord.id )
+    // console.log(mouse_coord.test_data)
+    // console.log(subPathData)
 
 
     updateSubPath(subPathData);
@@ -371,6 +404,7 @@ function mousemoved() {
     // up to the point we're mouseover-ing
     // subpath_length = d3.select("subpath")[0][0].getTotalLength();
     subpath_length = d3.select(".subpath").node().getTotalLength();
+    // console.log(subPathData)
     // console.log(subpath_length)
     // console.log(subPathData)
     // console.log(dataset)
@@ -379,16 +413,20 @@ function mousemoved() {
 };
 
 
-function updateSubPath(data) {
+function updateSubPath(subData) {
     // JOIN
+    // console.log(subData)
     var subpathselect = group.selectAll(".subpath")
-        .data(subPathData);
+        .data(subData);
     // UPDATE
-    subpathselect.attr("d", input_subline);
+    subpathselect.attr("d", input_line);
     // ENTER
     subpathselect.enter()
         .append("path")
-        .attr("d", input_subline)
+        .attr("fill", "none")
+        .attr("fill-opacity", 0)
+        .attr("stroke-width", 0)
+        .attr("d", input_line)
         .attr("class", "subpath");
 }
 
@@ -438,7 +476,7 @@ d3.csv(file, prepare, function(data) {
   x.domain([0, length])
 
 
-  playButton
+  d3.select("#play-button")
     .on("click", function() {
     var button = d3.select(this);
     if (button.text() == "Pause") {
@@ -448,13 +486,13 @@ d3.csv(file, prepare, function(data) {
       button.text("Simulate");
     } else {
       moving = true;
-      timer = setInterval(step, 50);
+      timer = setInterval(step, 75);
       button.text("Pause");
     }
     // console.log("Slider moving: " + moving);
   })
-    return data
-    // d3.select(window).on('resize', resize);
+    // call width resize for graphs
+    d3.select(window).on('resize', resize);
 })
 
 
@@ -468,21 +506,29 @@ function prepare(d) {
   return d;
 }
   
+
+
 function step() {
   if (currentValue < 0) {
     currentValue = 0
   }
-  console.log("step")
+  // console.log("step")
   currentValue = currentValue + (targetValue/250);
-  console.log(x.invert(currentValue))
+  // console.log(x.invert(currentValue))
 
   update(x.invert(currentValue))
   update_offset(x.invert(currentValue))
-  console.log(currentValue)
-  console.log(targetValue)
+
+
+  mousemoved(currentValue)
+  soc_bar_update(x_ref.invert(currentValue))
+  // mousemoved.call(slider);
+  // slider.on("start drag", mousemoved)
+  // console.log(currentValue)
+  // console.log(targetValue)
 
   if (currentValue > targetValue) {
-    console.log("here")
+    // console.log("here")
     moving = false;
     currentValue = 0;
     clearInterval(timer);
@@ -565,9 +611,9 @@ function draw_bar_soc(new_data) {
 function update(h) {
   // update position and text of label according to slider scale
   handle.attr("cx", x(h));
-  label
-    .attr("x", x(h))
-    .text(formatDate(h));
+  // label
+  //   .attr("x", x(h))
+  //   .text(formatDate(h));
 
   // filter data set and redraw plot
   // var newData = dataset.filter(function(d) {
@@ -609,7 +655,7 @@ function soc_bar_update(h) {
 // create function to handle 
 var resize = function(e) {
 
-  // update svg input chart /////////////////////////////////////////////////////////
+  // update svg line chart /////////////////////////////////////////////////////////
   width = parseInt(d3.select('#my_dataviz100').style('width'), 10)
 
   // dimensions = width_check(width, height)
@@ -619,7 +665,7 @@ var resize = function(e) {
 
   d3.select("#my_dataviz100").select("svg").attr("width", width)
   // svg_100.attr("width", width)
-  x_input.range([40, output_graph_width + 25]);
+  x_input.range([0, output_graph_width]);
   y_input.range([height, 0]);
 
   xAxis.scale(x_input);
@@ -632,8 +678,26 @@ var resize = function(e) {
   svg_100.select('.line').attr("d", input_line(dataset))
 
 
+  // update svg soc-bar chart /////////////////////////////////////////////////////////
+
+  // update svg action-bar chart /////////////////////////////////////////////////////////
+
+
 
   // update slider /////////////////////////////////////////////////////////
+  // d3.select("#my_dataviz100").select("svg").attr("width", width)
+  d3.select("#vis").select("svg").attr("width", width)
+
+  x.range([0, output_graph_width])
+
+  svg.select('.track').attr("x1", x.range()[0])
+  svg.select('.track-overlay').attr("x1", x.range()[0])
+  svg.select('.track-inset').attr("x1", x.range()[0])
+
+  svg.select('.track').attr("x2", x.range()[1])
+  svg.select('.track-overlay').attr("x2", x.range()[1])
+  svg.select('.track-inset').attr("x2", x.range()[1])
+
 
 }
 
@@ -668,7 +732,7 @@ function update_offset(offset) {
   // svg_100.select('.line').attr("d", input_line(dataset))
 
   const length = svg_100.select('.line').node().getTotalLength()
-  // const length = svg_100.select('.line').node().getTotalLength()
+  var offset_2 = svg_100.select('.subpath').node().getTotalLength()
 
   // console.log("new")
   // console.log(length)
@@ -681,143 +745,12 @@ function update_offset(offset) {
   // if (Math.floor(offset) % Math.floor(bin) <= 3) {
   svg_100.select('.line')
       // .attr("stroke-dasharray", length + " " + length)
-      .attr("stroke-dashoffset", length - offset);
+      .attr("stroke-dashoffset", length - offset_2);
 // }
 
 
 } 
 
-
-var w = 900,
-    h = 400;/*from   ww w. d emo2 s  .  co m*/
-var svg = d3.select("#canvas")
-    .append("svg")
-    .attr("width", w)
-    .attr("height", h)
-    .attr("id", "visualization");
-var subPathData = [
-    []
-];
-var pathData = [
-    [{
-        "x": 0,
-        "y": 0
-    }, {
-        "x": 100,
-        "y": 150
-    }, {
-        "x": 200,
-        "y": 70
-    }, {
-        "x": 300,
-        "y": 90
-    }, {
-        "x": 450,
-        "y": 200
-    }]
-];
-var textData = [{
-    "pathlength": 0,
-    "x": 0,
-    "y": 0
-}];
-var line = d3.line()
-    .x(function(d) {
-        return d.x;
-    })
-    .y(function(d) {
-        return d.y;
-    })
-    //.interpolate("monotone");
-    // .interpolate("none");
-var group = svg.append("g");
-updateSubPath(subPathData);
-group.selectAll(".fullpath")
-    .data(pathData)
-    .enter()
-    .append("path")
-    .attr("fill", "none")
-    .attr("fill-opacity", 0.2)
-    .attr("stroke", "steelblue")
-    .attr("stroke-width", 1)
-    .attr("d", line)
-    .attr("class", "fullpath")
-    .on("mousemove", mousemoved);
-updateText(textData);
-// On mousemove, get the mouseover point coords, and then draw an new path (sub-path)
-// that follows the existing path (full path) up to and including the new point
-function mousemoved() {
-    var m = d3.mouse(this);
-    mouse_coord = {
-        "x": m[0],
-        "y": m[1]
-    }
-    subPathData = [
-        []
-    ];
-    
-    for (var i = 0; i < pathData[0].length; i++) {
-        var coord = pathData[0][i];
-        
-        if ((coord.x <= mouse_coord.x)) {
-            subPathData[0].push(coord);
-        }
-    }
-
-    subPathData[0].push(mouse_coord);
-    console.log(subPathData)
-
-    updateSubPath(subPathData);
-    // Calculate the length of the subpath - this will be line length
-    // up to the point we're mouseover-ing
-    subpath_length = d3.select(".subpath").node().getTotalLength();
-    // console.log(subpath_length)
-    // Calculate the new info for text fields
-    textData = [{
-        "pathlength": subpath_length,
-        "x": mouse_coord.x,
-        "y": mouse_coord.y
-    }];
-    updateText(textData);
-};
-function updateSubPath(data) {
-    // JOIN
-    var subpathselect = group.selectAll(".subpath")
-        .data(subPathData);
-    // UPDATE
-    subpathselect.attr("d", line);
-    // ENTER
-    subpathselect.enter()
-        .append("path")
-            .attr("fill", "none")
-    .attr("fill-opacity", 0.2)
-    .attr("stroke", "steelblue")
-    .attr("stroke-width", 5)
-        .attr("d", line)
-        .attr("class", "subpath");
-}
-function updateText(data) {
-    // JOIN
-    var textline = svg.selectAll("text")
-        .data(data);
-    // UPDATE
-    textline.text(function(d) {
-        return "Path length from (0,0) to (" + d.x + "," + d.y +
-            ") is: " + d.pathlength;
-    });
-    // ENTER
-    textline.enter()
-        .append("text")
-        .attr("x", 20)
-        .attr("y", 250)
-        .text(function(d) {
-            return "Path length from (0,0) to (" + d.x + "," + d.y +
-                ") is: " + d.pathlength;
-        });
-    // EXIT
-    // Remove old elements as needed.
-    textline.exit().remove();
-}
 
 
 </script>
