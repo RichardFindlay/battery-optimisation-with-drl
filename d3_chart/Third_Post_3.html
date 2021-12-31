@@ -581,23 +581,26 @@ function draw_bar_soc(new_data) {
   var locations = plot.selectAll(".location")
     .data(new_data);
 
-  plot.selectAll("rect").remove();
+  // plot.selectAll("rect").remove();
 
   // if filtered dataset has more circles than already existing, transition new ones in
   locations
     .enter()
     .append("rect")
+      .attr("class", "location")
       .attr("x", function(d) { return x_bar(d.id); })
-      .attr("y", function(d) { return y_bar(d.soc); })
+      .attr("y", function(d) { return y_bar(0); })
       .attr("width", x_bar.bandwidth())
       .attr("fill", "#69b3a2")
       .attr("opacity", "0.2")
-      .attr("height", function(d) { return height/2 - y_bar(d.soc); })
-        // .transition()
-        // .duration(200)
-        // .attr("height", 0)
-        // .transition()
-        // .attr("height", function(d) { return height/2 - y_bar(d.soc); })
+      // .attr("height", function(d) { return height/2 - y_bar(d.soc); })
+        .transition()
+        .duration(300)
+        .attr("y", function(d) { return y_bar(d.soc); })
+        .attr("height", function(d) { return height/2 - y_bar(d.soc); })
+        // .delay(function(d,i){return(i*50)})
+
+  locations.exit().remove();
 
 }
 
@@ -664,7 +667,7 @@ var resize = function(e) {
   output_graph_width = width - margin.left - margin.right
 
   d3.select("#my_dataviz100").select("svg").attr("width", width)
-  // svg_100.attr("width", width)
+  svg_100.attr("width", width)
   x_input.range([0, output_graph_width]);
   y_input.range([height, 0]);
 
@@ -676,6 +679,9 @@ var resize = function(e) {
 
   svg_100.select(".x.axis").call(xAxis)
   svg_100.select('.line').attr("d", input_line(dataset))
+
+  // update sub-path line chart /////////////////////////////////////////////////////////
+  // svg_100.select('.subpath').attr("d", input_line(dataset))
 
 
   // update svg soc-bar chart /////////////////////////////////////////////////////////
@@ -690,13 +696,13 @@ var resize = function(e) {
 
   x.range([0, output_graph_width])
 
-  svg.select('.track').attr("x1", x.range()[0])
-  svg.select('.track-overlay').attr("x1", x.range()[0])
-  svg.select('.track-inset').attr("x1", x.range()[0])
 
   svg.select('.track').attr("x2", x.range()[1])
   svg.select('.track-overlay').attr("x2", x.range()[1])
   svg.select('.track-inset').attr("x2", x.range()[1])
+
+  // call update path length
+
 
 
 }
@@ -731,8 +737,10 @@ function update_offset(offset) {
   // svg_100.select(".x.axis").call(xAxis)
   // svg_100.select('.line').attr("d", input_line(dataset))
 
-  const length = svg_100.select('.line').node().getTotalLength()
+  var length = svg_100.select('.line').node().getTotalLength()
+  console.log(length)
   var offset_2 = svg_100.select('.subpath').node().getTotalLength()
+  // console.log(offset_2)
 
   // console.log("new")
   // console.log(length)
@@ -744,7 +752,7 @@ function update_offset(offset) {
 
   // if (Math.floor(offset) % Math.floor(bin) <= 3) {
   svg_100.select('.line')
-      // .attr("stroke-dasharray", length + " " + length)
+      .attr("stroke-dasharray", length + " " + length)
       .attr("stroke-dashoffset", length - offset_2);
 // }
 
