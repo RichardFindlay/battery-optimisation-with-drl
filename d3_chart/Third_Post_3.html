@@ -35,6 +35,7 @@
     #play-button:hover {
       background-color: #696969;
     }    
+
     
     .ticks {
       font-size: 10px;
@@ -76,7 +77,6 @@
 <body>
     <div id="my_dataviz100"></div>
     <div id="vis"></div>
-    <div id="canvas"></div>
     <button id="play-button">Simulate</button>
 <script>
 
@@ -89,7 +89,7 @@ var startDate = new Date("2004-11-01"),
     endDate = new Date("2017-04-01");
 
 var margin = {top:50, right:50, bottom:0, left:50},
-    width = 1100 - margin.left - margin.right,
+    width = 1100 
     height = 300 - margin.top - margin.bottom;
 
 
@@ -121,7 +121,7 @@ var x_input,y_input,
 // input line graph
 var svg_100 = d3.select("#my_dataviz100")
     .append("svg")
-    .attr("width", width + margin.left + margin.right)
+    .attr("width", "100%")
     .attr("height", height + margin.top + margin.bottom)  
     .attr("transform", "translate(" + 20 + "," + 0 + ")"); 
 
@@ -151,10 +151,7 @@ input_line = d3.line()
                 .y(function(d) { return y_input(d.test_data) })
 
 
-input_subline = d3.line()
-                .curve(d3.curveBasis)
-                .x(function(d) { return d.id })
-                .y(function(d) { return d.test_data })
+
 
 
 
@@ -190,6 +187,8 @@ var playButton = d3.select("#play-button");
 //     .clamp(true);
 
 
+////// SOC BAR SETUP //////////
+
 var x = d3.scaleLinear()
     // .domain([0, 6400])
     .range([0, width])
@@ -202,17 +201,17 @@ var x_ref = d3.scaleLinear()
 
 
 
-
 var x_bar = d3.scaleBand()
-  .range([ 0, width])
+  .range([0, width])
 
 var y_bar = d3.scaleLinear()
-  .domain([0, 1])
-  .range([ height/2, 0]);
+  .domain([-1, 1])
+  .range([height, 0]);
 
 
-xAxis_bar_soc = d3.axisBottom().scale(x_bar);
+xAxis_bar_soc = d3.axisBottom().scale(x_bar).tickSizeOuter(0).tickValues([]);;
 yAxis_bar_soc = d3.axisRight().scale(y_bar);
+
 
 
 
@@ -249,10 +248,13 @@ slider.append("line")
 
 
           mousemoved(currentValue_mouse[0]);
-        })
-
-        
+        })   
     )
+    .on("click", function() {
+      currentValue_mouse = d3.mouse(this);
+      update_offset(x.invert(currentValue))
+      mousemoved(currentValue_mouse[0]);
+    })
     // .on("mousemove", mousemoved)
 
 
@@ -279,6 +281,13 @@ var label = slider.append("text")
     .text(formatDate(startDate))
     .attr("transform", "translate(0," + (-25) + ")")
 
+
+var profit_label = svg_100.append("g").append("text")  
+    .attr("class", "profit_label")
+    .attr("font-size", "13")
+    // .text("Profit 💰: this is a test ")
+    // .attr("transform", "translate(" + (width - 125)  + "," + (height + 20) + ")")
+    .attr("transform", "translate(" + (width - 110) + "," + height + ")")
 
 
 
@@ -335,6 +344,12 @@ var label = slider.append("text")
   updateSubPath(subPathData);
 
 var bisect = d3.bisector(function(d) { return d.test_data; }).left;
+
+function getSum(total, num) {
+  return total + num;
+}
+
+
 
 function mousemoved(current_coords) {
 
@@ -413,6 +428,23 @@ function mousemoved(current_coords) {
 };
 
 
+
+var mouseG = svg_100
+  .append("g")
+  .attr("class", "mouse-over-effects");
+
+mouseG
+  .append("path") // this is the black vertical line to follow mouse
+  .attr("class", "mouse-line")
+  .style("stroke", "#393B45") //6E7889
+  .style("stroke-width", "0.5px")
+  .style("opacity", 0.75)
+
+
+
+
+
+
 function updateSubPath(subData) {
     // JOIN
     // console.log(subData)
@@ -430,6 +462,12 @@ function updateSubPath(subData) {
         .attr("class", "subpath");
 }
 
+
+const point_input = svg_100.append('circle')
+  .attr('r', 4)
+  .style("fill", 'none')
+  .style("stroke", '#3A3B3C')
+  .style("opacity", "0");
 
 
 var plot = svg_100.append("g")
@@ -449,6 +487,63 @@ d3.csv(file, prepare, function(data) {
   // drawPlot(dataset);
   draw_price_line(dataset);
   draw_bar_soc(dataset);
+  draw_bar_act(dataset);
+
+  charg_dis_prices = data.map(function(d) {return d.test_data * d.action })
+  profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
+  profit_label.text("Profit 💰:" + formatter.format(profit))
+
+
+  svg_100.on("mouseover", function () {
+    d3.select("#my_dataviz100")
+      .select(".mouse-line")
+      .style("opacity", "1")
+     // point_input.style("opacity", "1")
+  })
+
+
+  svg_100.on('mousemove', () => {
+        const x_ = d3.event.layerX - 21;
+        const curX = x_input.invert(x_);
+        
+        const minX = Math.floor(curX);
+        const maxX = Math.ceil(curX);
+
+        console.log(curX)
+        console.log(data[maxX])
+
+        if (data[minX] && data[maxX]) {
+          const xDelta = curX - minX;
+          const minPx = data[minX].id;
+          const maxPx = data[maxX].id;
+          const curPx = minPx + (maxPx - minPx) * xDelta;
+          const yPos = y_input(curPx)
+
+          point_input
+            .attr('cx', x_)
+            .attr('cy', yPos)
+            .style("opacity", "1");
+
+          d3.select("#my_dataviz100")
+            .select(".mouse-line")
+            .attr("d", function() {
+                var d = "M" + x_ + "," + height;
+                d += " " + x_ + "," + 0;
+              return d;
+            })
+          }
+        })
+
+
+
+
+
+  svg_100.on("mouseleave", function () {
+    d3.select("#my_dataviz100")
+      .select(".mouse-line")
+      .style("opacity", "0")
+  })
+
 
   // instantiate line graph plot
   var path = svg_100.append("path")
@@ -463,7 +558,6 @@ d3.csv(file, prepare, function(data) {
 
   var length = path.node().getTotalLength();
   console.log(length)
-
 
 
 
@@ -502,7 +596,9 @@ d3.csv(file, prepare, function(data) {
 
 function prepare(d) {
   d.id = d.id;
+  d.test_data = d.test_data
   d.date = parseDate(d.date);
+  d.action = d.action;
   return d;
 }
   
@@ -540,13 +636,32 @@ function step() {
 
 
 
-plot.append("g")
+
+
+
+
+
+soc_Xaxis = svg_100.append("g")
+  .attr("class", "x axis_soc")
   .attr("transform", "translate(0," + height/2 + ")")
-  .call(d3.axisBottom(x_bar))
+  .call(xAxis_bar_soc)
 
 // Add Y axis
-plot.append("g")
-  .call(d3.axisRight(y_bar));
+soc_Yaxis = svg_100.append("g")
+  .attr("class", "y axis_soc")
+  .call(yAxis_bar_soc);
+
+act_Xaxis = svg_100.append("g")
+  .attr("class", "x axis_act")
+  .attr("transform", "translate(0," + height/2 + ")")
+  .call(xAxis_bar_soc)
+
+// Add Y axis
+act_Yaxis = svg_100.append("g")
+  .attr("class", "y axis_act")
+  .call(yAxis_bar_soc);
+
+
 
 
 svg_input_Xaxis = svg_100.append("g")
@@ -577,11 +692,12 @@ function draw_price_line(data) {
 
 
 
-function draw_bar_soc(new_data) {
+function draw_bar_soc(dataset) {
   var locations = plot.selectAll(".location")
-    .data(new_data);
+    .data(dataset);
 
   // plot.selectAll("rect").remove();
+  console.log("redraw")
 
   // if filtered dataset has more circles than already existing, transition new ones in
   locations
@@ -598,14 +714,60 @@ function draw_bar_soc(new_data) {
         .duration(300)
         .attr("y", function(d) { return y_bar(d.soc); })
         .attr("height", function(d) { return height/2 - y_bar(d.soc); })
-        // .delay(function(d,i){return(i*50)})
+
+  // Update
+  locations
+      .attr("x", function(d) { return x_bar(d.id); })
+      // .attr("y", function(d) { return y_bar(0); })
+      // .attr("height", function(d) { return height/2 - y_bar(d.soc); })
+      .attr("width", x_bar.bandwidth())
+        // .transition()
+        // .duration(300)
+        // .attr("y", function(d) { return y_bar(d.soc); })
+        // .attr("height", function(d) { return height/2 - y_bar(d.soc); })
 
   locations.exit().remove();
 
 }
 
 
+function draw_bar_act(dataset) {
+  var locations_2 = plot.selectAll(".location_2")
+    .data(dataset);
 
+  // plot.selectAll("rect").remove();
+  console.log("redraw")
+
+  // if filtered dataset has more circles than already existing, transition new ones in
+  locations_2
+    .enter()
+    .append("rect")
+      .attr("class", "location_2")
+      .attr("x", function(d) { return x_bar(d.id); })
+      .attr("y", function(d) { return y_bar(0); })   
+      .attr("width", x_bar.bandwidth())
+      .attr("fill", "#00FFFF")
+      .attr("opacity", "0.2")
+      // .attr("height", function(d) { return height/2 - y_bar(d.soc); })
+        .transition()
+        .duration(300)
+        .attr("y", function(d) { return y_bar(Math.max(0, d.action)); })
+        .attr("height", function(d) { return Math.abs(y_bar(d.action) - y_bar(0)); })
+
+  // Update
+  locations_2
+      .attr("x", function(d) { return x_bar(d.id); })
+      // .attr("y", function(d) { return y_bar(0); })
+      // .attr("height", function(d) { return height/2 - y_bar(d.soc); })
+      .attr("width", x_bar.bandwidth())
+        // .transition()
+        // .duration(300)
+        // .attr("y", function(d) { return y_bar(d.soc); })
+        // .attr("height", function(d) { return height/2 - y_bar(d.soc); })
+
+  locations_2.exit().remove();
+
+}
 
 
 
@@ -624,6 +786,13 @@ function update(h) {
   // })
   // drawPlot(h);
 }
+
+
+var formatter = new Intl.NumberFormat('en-UK', {
+  style: 'currency',
+  currency: 'GBP',
+});
+
 
 
 function soc_bar_update(h) {
@@ -645,8 +814,14 @@ function soc_bar_update(h) {
     return d.id < h + 0.5 ;
   })
 
+  charg_dis_prices = newData.map(function(d) {return d.test_data * d.action })
+  profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
+  profit_label.text("Profit 💰:" + formatter.format(profit))
+
+
   // console.log(newData)
   draw_bar_soc(newData);
+  draw_bar_act(newData);
 
 }
 
@@ -680,11 +855,26 @@ var resize = function(e) {
   svg_100.select(".x.axis").call(xAxis)
   svg_100.select('.line').attr("d", input_line(dataset))
 
+  update_offset(1000, resize=true)
+
   // update sub-path line chart /////////////////////////////////////////////////////////
   // svg_100.select('.subpath').attr("d", input_line(dataset))
 
 
   // update svg soc-bar chart /////////////////////////////////////////////////////////
+  x_bar.range([0, output_graph_width])
+  x_ref.range([0, output_graph_width])
+
+  xAxis_bar_soc.scale(x_bar)
+  yAxis_bar_soc.scale(y_bar)
+
+  soc_Xaxis.call(xAxis_bar_soc)
+  soc_Yaxis.call(yAxis_bar_soc)
+
+  plot.select(".x.axis_soc").call(xAxis_bar_soc)
+  plot.select(".y.axis_soc").call(yAxis_bar_soc)
+
+  draw_bar_soc(dataset)
 
   // update svg action-bar chart /////////////////////////////////////////////////////////
 
@@ -701,7 +891,9 @@ var resize = function(e) {
   svg.select('.track-overlay').attr("x2", x.range()[1])
   svg.select('.track-inset').attr("x2", x.range()[1])
 
-  // call update path length
+  draw_bar_act(dataset)
+
+
 
 
 
@@ -714,9 +906,9 @@ function lineFiltered(data) {
 
 
 
-function update_offset(offset) {
+function update_offset(offset, resize=false) {
 
-  width = parseInt(d3.select('#my_dataviz100').style('width'), 10)
+  // width = parseInt(d3.select('#my_dataviz100').style('width'), 10)
 
   // dimensions = width_check(width, height)
   // main_graph_width = dimensions[0]
@@ -738,8 +930,15 @@ function update_offset(offset) {
   // svg_100.select('.line').attr("d", input_line(dataset))
 
   var length = svg_100.select('.line').node().getTotalLength()
-  console.log(length)
-  var offset_2 = svg_100.select('.subpath').node().getTotalLength()
+
+  if (resize === false){
+    var offset_2 = svg_100.select('.subpath').node().getTotalLength()
+  } else {
+    var offset_2 = length
+    handle.attr("cx", x(0))
+  }
+
+
   // console.log(offset_2)
 
   // console.log("new")
