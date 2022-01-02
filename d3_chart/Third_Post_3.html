@@ -18,8 +18,8 @@
 
     #play-button {
       position: absolute;
-      top: 140px;
-      left: 50px;
+      top: 270px;
+      left: 950px;
       background: #f08080;
       padding-right: 26px;
       border-radius: 3px;
@@ -78,6 +78,7 @@
     <div id="my_dataviz100"></div>
     <div id="vis"></div>
     <button id="play-button">Simulate</button>
+    
 <script>
 
 // Adapted from: https://bl.ocks.org/officeofjane/47d2b0bfeecfcb41d2212d06d095c763
@@ -89,7 +90,7 @@ var startDate = new Date("2004-11-01"),
     endDate = new Date("2017-04-01");
 
 var margin = {top:50, right:50, bottom:0, left:50},
-    width = 1100 
+    width = 1100 - margin.left - margin.right
     height = 300 - margin.top - margin.bottom;
 
 
@@ -102,6 +103,7 @@ var svg = d3.select("#vis")
     .append("svg")
     .attr("width", "100%")
     .attr("height", "100%")
+
 
     // .attr("viewBox", [-20, -10, width + 40, 100])
     // .attr("preserveAspectRatio", "xMinYMin meet");
@@ -123,8 +125,7 @@ var svg_100 = d3.select("#my_dataviz100")
     .append("svg")
     .attr("width", "100%")
     .attr("height", height + margin.top + margin.bottom)  
-    .attr("transform", "translate(" + 20 + "," + 0 + ")"); 
-
+    .attr("transform", "translate(" + 20 + "," + 0 + ")")
 
 
 
@@ -143,7 +144,7 @@ y_input = d3.scaleLinear()
   .range([height, 0]);
 
 xAxis = d3.axisBottom().scale(x_input).tickSizeOuter(0).tickValues([]);
-yAxis = d3.axisLeft().scale(y_input);
+yAxis = d3.axisLeft().scale(y_input).tickSizeOuter(0).tickValues([]);
 
 input_line = d3.line()
                 .curve(d3.curveBasis)
@@ -210,7 +211,7 @@ var y_bar = d3.scaleLinear()
 
 
 xAxis_bar_soc = d3.axisBottom().scale(x_bar).tickSizeOuter(0).tickValues([]);;
-yAxis_bar_soc = d3.axisRight().scale(y_bar);
+yAxis_bar_soc = d3.axisRight().scale(y_bar).tickSizeOuter(0).tickValues([]);
 
 
 
@@ -245,6 +246,8 @@ slider.append("line")
           // offset = x.invert(currentValue)
           update(x.invert(currentValue))
           soc_bar_update(x_ref.invert(currentValue))
+
+          info_line(currentValue)
 
 
           mousemoved(currentValue_mouse[0]);
@@ -288,6 +291,11 @@ var profit_label = svg_100.append("g").append("text")
     // .text("Profit 💰: this is a test ")
     // .attr("transform", "translate(" + (width - 125)  + "," + (height + 20) + ")")
     .attr("transform", "translate(" + (width - 110) + "," + height + ")")
+
+
+var info_line_text = svg_100.append("g").append("text")  
+    .attr("class", "info_line_text")
+    .attr("font-size", "13")
 
 
 
@@ -441,8 +449,78 @@ mouseG
   .style("opacity", 0.75)
 
 
+function info_line(cur_pos=null) {
+  if (cur_pos === null) {
+    x_ = d3.event.layerX - 20;
+  } else {
+    x_ = cur_pos
+  }
+
+    pathLength = d3.select(".line").node().getTotalLength()
+
+    var x = x_; 
+    var beginning = x, end = pathLength, target;
 
 
+    while (true) {
+      target = Math.floor((beginning + end) / 2);
+      pos = d3.select(".line").node().getPointAtLength(target);
+      // console.log(pos)
+      if ((target === end || target === beginning) && pos.x !== x) {
+          break;
+      }
+      if (pos.x > x)      end = target;
+      else if (pos.x < x) beginning = target;
+      else                break; //position found
+    }
+          point_input
+            .attr('cx', pos.x)
+            .attr('cy', pos.y)
+            .style("opacity", "1");
+
+          d3.select("#my_dataviz100")
+            .select(".mouse-line")
+            .attr("d", function() {
+                var d = "M" + pos.x + "," + height;
+                d += " " + pos.x + "," + 0;
+              return d;
+            })
+      
+          d3.select("#my_dataviz100")
+            .select(".mouse-line")
+            .style("opacity", "1")
+
+          info_line_text
+            .text('Price: Action:\n SoC')
+            .attr('x', pos.x +2)
+            .attr('y', height-15)
+
+
+
+
+        }
+
+  svg_100.on("mouseover", function () {
+    d3.select("#my_dataviz100")
+      .select(".mouse-line")
+      .style("opacity", "1")
+     point_input.style("opacity", "1")
+  })
+
+  svg.on("mouseleave", function () {
+    d3.select("#my_dataviz100")
+      .select(".mouse-line")
+      .style("opacity", "0")
+      point_input.style("opacity", "0")
+  })
+
+
+  svg_100.on("mouseleave", function () {
+    d3.select("#my_dataviz100")
+      .select(".mouse-line")
+      .style("opacity", "0")
+      point_input.style("opacity", "0")
+  })
 
 
 function updateSubPath(subData) {
@@ -483,7 +561,6 @@ d3.csv(file, prepare, function(data) {
     .padding(0.2);
 
 
-
   // drawPlot(dataset);
   draw_price_line(dataset);
   draw_bar_soc(dataset);
@@ -494,55 +571,7 @@ d3.csv(file, prepare, function(data) {
   profit_label.text("Profit 💰:" + formatter.format(profit))
 
 
-  svg_100.on("mouseover", function () {
-    d3.select("#my_dataviz100")
-      .select(".mouse-line")
-      .style("opacity", "1")
-     // point_input.style("opacity", "1")
-  })
-
-
-  svg_100.on('mousemove', () => {
-        const x_ = d3.event.layerX - 21;
-        const curX = x_input.invert(x_);
-        
-        const minX = Math.floor(curX);
-        const maxX = Math.ceil(curX);
-
-        console.log(curX)
-        console.log(data[maxX])
-
-        if (data[minX] && data[maxX]) {
-          const xDelta = curX - minX;
-          const minPx = data[minX].id;
-          const maxPx = data[maxX].id;
-          const curPx = minPx + (maxPx - minPx) * xDelta;
-          const yPos = y_input(curPx)
-
-          point_input
-            .attr('cx', x_)
-            .attr('cy', yPos)
-            .style("opacity", "1");
-
-          d3.select("#my_dataviz100")
-            .select(".mouse-line")
-            .attr("d", function() {
-                var d = "M" + x_ + "," + height;
-                d += " " + x_ + "," + 0;
-              return d;
-            })
-          }
-        })
-
-
-
-
-
-  svg_100.on("mouseleave", function () {
-    d3.select("#my_dataviz100")
-      .select(".mouse-line")
-      .style("opacity", "0")
-  })
+  svg_100.on('mousemove', info_line)
 
 
   // instantiate line graph plot
@@ -646,20 +675,24 @@ soc_Xaxis = svg_100.append("g")
   .attr("transform", "translate(0," + height/2 + ")")
   .call(xAxis_bar_soc)
 
+
 // Add Y axis
 soc_Yaxis = svg_100.append("g")
   .attr("class", "y axis_soc")
-  .call(yAxis_bar_soc);
+  .call(yAxis_bar_soc)
+  .select(".domain").remove();
 
 act_Xaxis = svg_100.append("g")
   .attr("class", "x axis_act")
   .attr("transform", "translate(0," + height/2 + ")")
   .call(xAxis_bar_soc)
+  .select(".domain").remove();
 
 // Add Y axis
 act_Yaxis = svg_100.append("g")
   .attr("class", "y axis_act")
-  .call(yAxis_bar_soc);
+  .call(yAxis_bar_soc)
+  .select(".domain").remove();
 
 
 
@@ -667,13 +700,13 @@ act_Yaxis = svg_100.append("g")
 svg_input_Xaxis = svg_100.append("g")
   .attr("class", "x axis")
   .attr("transform", "translate(0," + height + ")")
-  .call(xAxis);
-
-  // .select(".domain").remove();
+  .call(xAxis)
+  .select(".domain").remove();
 
 svg_input_Yaxis = svg_100.append("g")
   .attr("class", "y axis")
   .call(yAxis)
+
 
 
 
