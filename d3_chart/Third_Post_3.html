@@ -27,7 +27,7 @@
       color: white;
       margin: 0;
       padding: 0 12px;
-      width: 80px;
+      width: 100px;
       cursor: pointer;
       height: 30px;
     }
@@ -77,7 +77,7 @@
 <body>
     <div id="my_dataviz100"></div>
     <div id="vis"></div>
-    <button id="play-button">Simulate</button>
+    <button id="play-button">Simulate ⚡</button>
     
 <script>
 
@@ -281,7 +281,8 @@ var handle = slider.insert("circle", ".track-overlay")
 var label = slider.append("text")  
     .attr("class", "label")
     .attr("text-anchor", "middle")
-    .text(formatDate(startDate))
+    .text("🔋")
+    .attr("font-size", "20")
     .attr("transform", "translate(0," + (-25) + ")")
 
 
@@ -295,9 +296,15 @@ var profit_label = svg_100.append("g").append("text")
 
 var info_line_text = svg_100.append("g").append("text")  
     .attr("class", "info_line_text")
-    .attr("font-size", "13")
+    .attr("font-size", "10")
 
+var info_line_text2 = svg_100.append("g").append("text")  
+    .attr("class", "info_line_text1")
+    .attr("font-size", "10")
 
+var info_line_text3 = svg_100.append("g").append("text")  
+    .attr("class", "info_line_text2")
+    .attr("font-size", "10")
 
 
  
@@ -473,6 +480,38 @@ function info_line(cur_pos=null) {
       else if (pos.x < x) beginning = target;
       else                break; //position found
     }
+
+
+    bar_data = [
+        []
+    ];
+    
+    for (var i = 0; i < dataset.length; i++) {
+        // console.log(dataset[i])
+        var coord_id = dataset[i]['id'];
+        var coord_test_data1 = dataset[i]['action'];
+        var coord_test_data2 = dataset[i]['soc'];
+        // console.log(dataset[i]['test_data'])
+
+
+        if ((x_input(coord_id) <= x_ + 5)) {
+            bar_data.push({'id': coord_id, 'action': coord_test_data1, 'soc': coord_test_data2});
+        }
+    }
+          var test = parseFloat(bar_data[bar_data.length-1]['action'])
+
+
+          //   most_recent = {
+          //       "id": coord_id,
+          //       'action': coord_test_data1
+          //       'soc': coord_test_data2
+          //   }
+
+          // most_recent.id = String(x_input.invert(mouse_coord.id))
+          // most_recent.action = String(y_bar.invert(pos.y))
+          // most_recent.soc = String(y_bar.invert(pos.y))
+          // bar_data.push(mouse_coord);
+
           point_input
             .attr('cx', pos.x)
             .attr('cy', pos.y)
@@ -491,10 +530,44 @@ function info_line(cur_pos=null) {
             .style("opacity", "1")
 
           info_line_text
-            .text('Price: Action:\n SoC')
-            .attr('x', pos.x +2)
-            .attr('y', height-15)
+            .text('Price: ' + formatter.format(y_input.invert(pos.y)))
+            .attr('x', pos.x + 5)
+            .attr('y', 8)
+            .style("opacity", "1")
 
+          info_line_text2
+            .text('Action: ' + parseFloat(bar_data[bar_data.length-1]['action']).toFixed(2) + " MW")
+            .attr('x', pos.x + 5)
+            .attr('y', 19)
+            .style("opacity", "1")
+
+          info_line_text3
+            .text('SoC: ' + parseFloat(bar_data[bar_data.length-1]['soc']).toFixed(2) + " MW")
+            .attr('x', pos.x + 5)
+            .attr('y', 30)
+            .style("opacity", "1")
+
+          
+
+          subpath_cur = d3.select(".line").node().getPointAtLength(d3.select(".subpath").node().getTotalLength());
+
+          cur_end = (x_input.invert(subpath_cur.x)).toFixed(2)
+          cur_lineinfo = x_input.invert((x_))
+
+          // console.log(subpath_cur.x)
+          console.log(cur_end)
+          console.log(cur_lineinfo)
+
+          // if (cur_lineinfo - 0.5 >= cur_end) {
+          //   console.log('here')
+          //       d3.select("#my_dataviz100")
+          //         .select(".mouse-line")
+          //         .style("opacity", "0")
+          //         point_input.style("opacity", "0")
+          //         info_line_text.style("opacity", "0")
+          //         info_line_text2.style("opacity", "0")
+          //         info_line_text3.style("opacity", "0")
+          // }
 
 
 
@@ -505,22 +578,28 @@ function info_line(cur_pos=null) {
       .select(".mouse-line")
       .style("opacity", "1")
      point_input.style("opacity", "1")
+    info_line_text.style("opacity", "1")
+    info_line_text2.style("opacity", "1")
+    info_line_text3.style("opacity", "1")
   })
 
-  svg.on("mouseleave", function () {
-    d3.select("#my_dataviz100")
-      .select(".mouse-line")
-      .style("opacity", "0")
-      point_input.style("opacity", "0")
-  })
+  // svg.on("mouseleave", function () {
+  //   d3.select("#my_dataviz100")
+  //     .select(".mouse-line")
+  //     .style("opacity", "0")
+  //     point_input.style("opacity", "0")
+  //     info_line_text.style("opacity", "0")
+  //     info_line_text2.style("opacity", "0")
+  //     info_line_text3.style("opacity", "0")
+  // })
 
 
-  svg_100.on("mouseleave", function () {
-    d3.select("#my_dataviz100")
-      .select(".mouse-line")
-      .style("opacity", "0")
-      point_input.style("opacity", "0")
-  })
+  // svg_100.on("mouseleave", function () {
+  //   d3.select("#my_dataviz100")
+  //     .select(".mouse-line")
+  //     .style("opacity", "0")
+  //     point_input.style("opacity", "0")
+  // })
 
 
 function updateSubPath(subData) {
@@ -571,7 +650,7 @@ d3.csv(file, prepare, function(data) {
   profit_label.text("Profit 💰:" + formatter.format(profit))
 
 
-  svg_100.on('mousemove', info_line)
+  // svg_100.on('mousemove', info_line)
 
 
   // instantiate line graph plot
@@ -586,7 +665,6 @@ d3.csv(file, prepare, function(data) {
     // .on("mousemove", mousemoved);
 
   var length = path.node().getTotalLength();
-  console.log(length)
 
 
 
@@ -606,7 +684,7 @@ d3.csv(file, prepare, function(data) {
       moving = false;
       clearInterval(timer);
       timer = 0;
-      button.text("Simulate");
+      button.text("Simulate ⚡");
     } else {
       moving = true;
       timer = setInterval(step, 75);
@@ -658,7 +736,7 @@ function step() {
     currentValue = 0;
     clearInterval(timer);
     // timer = 0;
-    playButton.text("Simulate");
+    playButton.text("Simulate ⚡");
     // console.log("Slider moving: " + moving);
   }
 }
@@ -730,7 +808,6 @@ function draw_bar_soc(dataset) {
     .data(dataset);
 
   // plot.selectAll("rect").remove();
-  console.log("redraw")
 
   // if filtered dataset has more circles than already existing, transition new ones in
   locations
