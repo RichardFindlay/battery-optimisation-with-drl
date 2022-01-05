@@ -18,8 +18,8 @@
 
     #play-button {
       position: absolute;
-      top: 270px;
-      left: 950px;
+      top: 315px;
+      left: 940px;
       background: #f08080;
       padding-right: 26px;
       border-radius: 3px;
@@ -54,8 +54,8 @@
     }
 
     .track-inset {
-      stroke: #dcdcdc;
-      stroke-width: 8px;
+      stroke: #BEBEBE;
+      stroke-width: 4px;
     }
 
     .track-overlay {
@@ -75,8 +75,9 @@
 </head>
 
 <body>
+  <div id="vis"></div>
     <div id="my_dataviz100"></div>
-    <div id="vis"></div>
+    
     <button id="play-button">Simulate ⚡</button>
     
 <script>
@@ -102,7 +103,7 @@ var viewBox = '0 0 ' + aspectRatio.split(':').join(' ');
 var svg = d3.select("#vis")
     .append("svg")
     .attr("width", "100%")
-    .attr("height", "100%")
+    .attr("height", height - 200)  
 
 
     // .attr("viewBox", [-20, -10, width + 40, 100])
@@ -124,8 +125,9 @@ var x_input,y_input,
 var svg_100 = d3.select("#my_dataviz100")
     .append("svg")
     .attr("width", "100%")
-    .attr("height", height + margin.top + margin.bottom)  
+    .attr("height", height)  
     .attr("transform", "translate(" + 20 + "," + 0 + ")")
+
 
 
 
@@ -143,7 +145,7 @@ y_input = d3.scaleLinear()
   // .domain([0, 0.5])
   .range([height, 0]);
 
-xAxis = d3.axisBottom().scale(x_input).tickSizeOuter(0).tickValues([]);
+xAxis = d3.axisBottom().scale(x_input);
 yAxis = d3.axisLeft().scale(y_input).tickSizeOuter(0).tickValues([]);
 
 input_line = d3.line()
@@ -167,7 +169,6 @@ input_line = d3.line()
 
 
 ////////// slider //////////
-
 var moving = false;
 var currentValue = 0;
 var targetValue = width;
@@ -185,12 +186,12 @@ var playButton = d3.select("#play-button");
 ////// SOC BAR SETUP //////////
 
 var x = d3.scaleLinear()
-    // .domain([0, 6400])
+   .domain([0, 168])
     .range([0, width])
     .clamp(true);
 
 var x_ref = d3.scaleLinear()
-    .domain([0, 111])
+    .domain([0, 168])
     .range([0, width])
     .clamp(true);
 
@@ -205,29 +206,112 @@ var y_bar = d3.scaleLinear()
 
 
 xAxis_bar_soc = d3.axisBottom().scale(x_bar).tickSizeOuter(0).tickValues([]);;
-yAxis_bar_soc = d3.axisRight().scale(y_bar).tickSizeOuter(0).tickValues([]);
+yAxis_bar_soc = d3.axisRight().scale(y_bar)
+
+
+x_dates = d3.scaleTime()
+  .range([ 0, width])
+
+
+xAxis_dates_hours = d3.axisBottom().scale(x_dates).tickFormat(d3.timeFormat("")).ticks(d3.timeHour.every(1)).tickSize(5);
+xAxis_dates_noon = d3.axisBottom().scale(x_dates).tickFormat(d3.timeFormat("")).ticks(d3.timeHour.every(12)).tickSize(10);
+xAxis_dates_days = d3.axisBottom().scale(x_dates).tickFormat(d3.timeFormat("")).ticks(d3.timeHour.every(24)).tickSize(18.5);
 
 
 
 
 
+
+// add y-axis gridlines
+svg_100.selectAll("line.horizontalGrid").data(y_input.ticks(4)).enter()
+    .append("line")
+        .attr("class", "horizontalGrid")
+        .attr("x1", 0)
+        .attr("x2", width)
+        .attr("y1", function(d){ return y_input(d) - 24;})
+        .attr("y2", function(d){ return y_input(d) - 24;})
+        .attr("fill", "none")
+        .attr("shape-rendering", "crispEdges")
+        .attr("stroke", "grey")
+        .attr("stroke-width", "1px")
+        .attr("opacity", 0.4)
+        .style("stroke-dasharray", 4)
+        .attr("z-index", -1) 
+
+// add x-axis time markers - minor ticks (hours)
+// svg.selectAll("line.veticalGrid").data(x_input.ticks(168)).enter()
+//     .append("line")
+//         .attr("class", "verticalGrid")
+//         .attr("y1", 0)
+//         .attr("y2", 5)
+//         .attr("x1", function(d){ return x_input(d);})
+//         .attr("x2", function(d){ return x_input(d);})
+//         .attr("fill", "none")
+//         .attr("shape-rendering", "crispEdges")
+//         .attr("stroke", "#BEBEBE")
+//         .attr("stroke-width", "1px")
+//         .attr("opacity", 0.5)
+//         .attr("transform", "translate(" + 20 + "," + 25.5 + ")")
+
+
+// add x-axis time markers - minor ticks (noon)
+// svg.selectAll("line.veticalGrid_days").data(x_input.ticks(24)).enter()
+//     .append("line")
+//         .attr("class", "verticalGrid_days")
+//         .attr("y1", 0)
+//         .attr("y2", 10)
+//         .attr("x1", function(d){ return x_input(d);})
+//         .attr("x2", function(d){ return x_input(d);})
+//         .attr("fill", "none")
+//         .attr("shape-rendering", "crispEdges")
+//         .attr("stroke", "#BEBEBE")
+//         .attr("stroke-width", "1.5px")
+//         .attr("opacity", 1.0)
+//         .attr("transform", "translate(" + 20 + "," + 23.5 + ")")
+
+
+// add x-axis time markers - minor ticks (hours)
+// svg.selectAll("line.veticalGrid_days").data(x_input.ticks(7)).enter()
+//     .append("line")
+//         .attr("class", "verticalGrid_days")
+//         .attr("y1", 0)
+//         .attr("y2", 11.5)
+//         .attr("x1", function(d){ return x_input(d)+20;})
+//         .attr("x2", function(d){ return x_input(d)+20;})
+//         .attr("fill", "none")
+//         .attr("shape-rendering", "crispEdges")
+//         .attr("stroke", "#BEBEBE")
+//         .attr("stroke-width", "1.5px")
+//         .attr("opacity", 1.0)
+//         .attr("transform", "translate(" + (20) + "," + 26 + ")")
+
+
+
+// add y-axis labels
+svg_100.data(y_input.ticks(7)).enter()
+    .append("text")
+        .attr("class", "verticaltext_days")
+        .attr("opacity", 1.0)
+        .attr("transform", "translate(" + 100 + "," + 0 + ")")
 
 
 var slider = svg.append("g")
     .attr("class", "slider")
-    .attr("transform", "translate(" + 20 + "," + height/5 + ")");
+    .attr("transform", "translate(" + 20 + "," + 25 + ")");
+
+
 
 slider.append("line")
     .attr("class", "track")
-    .attr("x1", x.range()[0])
-    .attr("x2", x.range()[1])
+    .attr("x1", x_input.range()[0])
+    .attr("x2", x_input.range()[1])
   .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
     .attr("class", "track-inset")
   .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
     .attr("class", "track-overlay")
     .call(d3.drag()
         // .on("start.interrupt", function() { slider.interrupt(); })
-        .on("start drag", function() {
+        .on("drag", function() {
           currentValue_mouse = d3.mouse(this);
           currentValue = d3.mouse(this)[0]
           currentValue_bar = d3.event.x;
@@ -235,10 +319,10 @@ slider.append("line")
           // console.log(x(currentValue))
           // console.log(x.invert(currentValue))
 
-          update_offset(x.invert(currentValue))
+          update_offset(x_ref.invert(currentValue))
           
           // offset = x.invert(currentValue)
-          update(x.invert(currentValue))
+          update(x_ref.invert(currentValue))
           soc_bar_update(x_ref.invert(currentValue))
 
           info_line(currentValue)
@@ -256,28 +340,29 @@ slider.append("line")
 
 
 
-slider.insert("g", ".track-overlay")
-    .attr("class", "ticks")
-    .attr("transform", "translate(0," + 0 + ")")
-  .selectAll("text")
-    .data(x.ticks(20))
-    .enter()
-    .append("text")
-    .attr("x", x)
-    .attr("y", 20)
-    .attr("text-anchor", "middle")
-    .text(function(d) { return d; });
+// slider.insert("g", ".track-overlay")
+//     .attr("class", "ticks")
+//     .attr("transform", "translate(0," + 0 + ")")
+//   .selectAll("text")
+//     .data(x.ticks(20))
+//     .enter()
+//     .append("text")
+//     .attr("x", x)
+//     .attr("y", 20)
+//     .attr("text-anchor", "middle")
+//     .text(function(d) { return d; });
 
 var handle = slider.insert("circle", ".track-overlay")
+    .attr("transform", "translate(" + 0 + "," + 0 + ")")
     .attr("class", "handle")
     .attr("r", 9);
 
-var label = slider.append("text")  
-    .attr("class", "label")
-    .attr("text-anchor", "middle")
-    .text("🔋")
-    .attr("font-size", "20")
-    .attr("transform", "translate(0," + (-25) + ")")
+// var label = slider.append("text")  
+//     .attr("class", "label")
+//     .attr("text-anchor", "middle")
+//     .text("🔋")
+//     .attr("font-size", "20")
+//     .attr("transform", "translate(0," + (-25) + ")")
 
 
 var profit_label = svg_100.append("g").append("text")  
@@ -285,21 +370,34 @@ var profit_label = svg_100.append("g").append("text")
     .attr("font-size", "13")
     // .text("Profit 💰: this is a test ")
     // .attr("transform", "translate(" + (width - 125)  + "," + (height + 20) + ")")
-    .attr("transform", "translate(" + (width - 110) + "," + height + ")")
+    .attr("transform", "translate(" + (width - 110) + "," + (height -10) + ")")
 
 
 var info_line_text = svg_100.append("g").append("text")  
     .attr("class", "info_line_text")
     .attr("font-size", "10")
+    .style("fill", '#293241')
+    // .attr("font-weight","bold")
+    
 
 var info_line_text2 = svg_100.append("g").append("text")  
     .attr("class", "info_line_text1")
     .attr("font-size", "10")
+    .style("fill", '#f79256')
+    // .attr("font-weight","bold")
 
 var info_line_text3 = svg_100.append("g").append("text")  
     .attr("class", "info_line_text2")
     .attr("font-size", "10")
+    .style("fill", '#457b9d')
+    // .attr("font-weight","bold")
 
+
+var info_line_time = svg_100.append("g").append("text")  
+    .attr("class", "info_line_text3")
+    .attr("font-size", "12")
+    .style("fill", '#457b9d')
+    // .attr("font-weight","bold")
 
  
 ////////// plot //////////
@@ -442,24 +540,26 @@ var mouseG = svg_100
   .append("g")
   .attr("class", "mouse-over-effects");
 
+
 mouseG
   .append("path") // this is the black vertical line to follow mouse
   .attr("class", "mouse-line")
-  .style("stroke", "#393B45") //6E7889
-  .style("stroke-width", "0.5px")
+  // .style("stroke", "#393B45") //6E7889
+  .style("stroke", "#293241")
+  .style("stroke-width", "1.0px")
   .style("opacity", 0.75)
 
 
 function info_line(cur_pos=null) {
   if (cur_pos === null) {
-    x_ = d3.event.layerX - 20;
+    x_ = d3.event.layerX ;
   } else {
     x_ = cur_pos
   }
 
     pathLength = d3.select(".line").node().getTotalLength()
 
-    var x = x_; 
+    var x = x_ ; 
     var beginning = x, end = pathLength, target;
 
 
@@ -479,20 +579,21 @@ function info_line(cur_pos=null) {
     bar_data = [
         []
     ];
-    
+
     for (var i = 0; i < dataset.length; i++) {
         // console.log(dataset[i])
         var coord_id = dataset[i]['id'];
         var coord_test_data1 = dataset[i]['action'];
         var coord_test_data2 = dataset[i]['soc'];
+        var coord_test_data3 = dataset[i]['date'];
         // console.log(dataset[i]['test_data'])
 
 
         if ((x_input(coord_id) <= x_ + 5)) {
-            bar_data.push({'id': coord_id, 'action': coord_test_data1, 'soc': coord_test_data2});
+            bar_data.push({'id': coord_id, 'action': coord_test_data1, 'soc': coord_test_data2, 'date': d3.timeFormat("%H:%M %p")(coord_test_data3)});
         }
     }
-          var test = parseFloat(bar_data[bar_data.length-1]['action'])
+          // var test = parseFloat(bar_data[bar_data.length-1]['action'])
 
 
           //   most_recent = {
@@ -514,8 +615,8 @@ function info_line(cur_pos=null) {
           d3.select("#my_dataviz100")
             .select(".mouse-line")
             .attr("d", function() {
-                var d = "M" + pos.x + "," + height;
-                d += " " + pos.x + "," + 0;
+                var d = "M" + (pos.x) + "," + height;
+                d += " " + (pos.x) + "," + 0;
               return d;
             })
       
@@ -541,6 +642,14 @@ function info_line(cur_pos=null) {
             .attr('y', 30)
             .style("opacity", "1")
 
+          console.log((bar_data[bar_data.length-1]['date']))
+
+          info_line_time
+            .text(bar_data[bar_data.length-1]['date'])
+            .attr('x', pos.x + 5)
+            .attr('y', height - 10)
+            .style("opacity", "1")
+
           
 
           subpath_cur = d3.select(".line").node().getPointAtLength(d3.select(".subpath").node().getTotalLength());
@@ -549,8 +658,8 @@ function info_line(cur_pos=null) {
           cur_lineinfo = x_input.invert((x_))
 
           // console.log(subpath_cur.x)
-          console.log(cur_end)
-          console.log(cur_lineinfo)
+          // console.log(cur_end)
+          // console.log(cur_lineinfo)
 
           // if (cur_lineinfo - 0.5 >= cur_end) {
           //   console.log('here')
@@ -567,33 +676,33 @@ function info_line(cur_pos=null) {
 
         }
 
-  svg_100.on("mouseover", function () {
+  // svg_100.on("mouseover", function () {
+  //   d3.select("#my_dataviz100")
+  //     .select(".mouse-line")
+  //     .style("opacity", "1")
+  //    point_input.style("opacity", "1")
+  //   info_line_text.style("opacity", "1")
+  //   info_line_text2.style("opacity", "1")
+  //   info_line_text3.style("opacity", "1")
+  // })
+
+  svg.on("mouseleave", function () {
     d3.select("#my_dataviz100")
       .select(".mouse-line")
-      .style("opacity", "1")
-     point_input.style("opacity", "1")
-    info_line_text.style("opacity", "1")
-    info_line_text2.style("opacity", "1")
-    info_line_text3.style("opacity", "1")
+      .style("opacity", "0")
+      point_input.style("opacity", "0")
+      info_line_text.style("opacity", "0")
+      info_line_text2.style("opacity", "0")
+      info_line_text3.style("opacity", "0")
   })
 
-  // svg.on("mouseleave", function () {
-  //   d3.select("#my_dataviz100")
-  //     .select(".mouse-line")
-  //     .style("opacity", "0")
-  //     point_input.style("opacity", "0")
-  //     info_line_text.style("opacity", "0")
-  //     info_line_text2.style("opacity", "0")
-  //     info_line_text3.style("opacity", "0")
-  // })
 
-
-  // svg_100.on("mouseleave", function () {
-  //   d3.select("#my_dataviz100")
-  //     .select(".mouse-line")
-  //     .style("opacity", "0")
-  //     point_input.style("opacity", "0")
-  // })
+  svg_100.on("mouseleave", function () {
+    d3.select("#my_dataviz100")
+      .select(".mouse-line")
+      .style("opacity", "0")
+      point_input.style("opacity", "0")
+  })
 
 
 function updateSubPath(subData) {
@@ -617,7 +726,7 @@ function updateSubPath(subData) {
 const point_input = svg_100.append('circle')
   .attr('r', 4)
   .style("fill", 'none')
-  .style("stroke", '#3A3B3C')
+  .style("stroke", '#293241')
   .style("opacity", "0");
 
 
@@ -652,14 +761,38 @@ d3.csv(file, prepare, function(data) {
     .datum(dataset)
     .attr("class", "line")
     .attr("fill", "none")
-    .attr("fill-opacity", 1.0)
+    .attr("opacity", 0.8)
     .attr("stroke", "#293241")
-    .attr("stroke-width", 2.0)
+    .attr("stroke-width", 1.75)
     .attr("d", input_line(dataset))
     // .on("mousemove", mousemoved);
 
   var length = path.node().getTotalLength();
 
+
+  x_dates.domain(d3.extent(dataset, function(d){return d.date;}))
+
+  svg_Xdates = svg.append("g")
+    .attr("class", "x axis_dates")
+    .attr("transform", "translate(20," + 25 + ")")
+    .call(xAxis_dates_hours)
+  
+
+  svg_Xdates_noon = svg.append("g")
+    .attr("class", "x axis_dates")
+    .attr("transform", "translate(20," + 25 + ")")
+    .call(xAxis_dates_noon)
+  
+
+  svg_Xdates_days = svg.append("g")
+    .attr("class", "x axis_dates")
+    .attr("transform", "translate(20," + 25 + ")")
+    .call(xAxis_dates_days)
+ 
+
+  svg_Xdates.lower()
+  svg_Xdates_noon.lower()
+  svg_Xdates_days.lower()
 
 
   // console.log("intial")
@@ -668,7 +801,7 @@ d3.csv(file, prepare, function(data) {
   path.attr("stroke-dasharray", length + " " + length)
     .attr("stroke-dashoffset", 0);
 
-  x.domain([0, length])
+  // x.domain([0, length])
 
 
   d3.select("#play-button")
@@ -698,7 +831,7 @@ d3.csv(file, prepare, function(data) {
 function prepare(d) {
   d.id = d.id;
   d.test_data = d.test_data
-  d.date = parseDate(d.date);
+  d.date = d3.timeParse("%d/%m/%Y %H:%M")(d.date)
   d.action = d.action;
   return d;
 }
@@ -742,9 +875,10 @@ function step() {
 
 
 
+
 soc_Xaxis = svg_100.append("g")
   .attr("stroke", "grey")
-  .attr("opacity", "0.5")
+  .attr("opacity", "0.25")
   .attr("class", "x axis_soc")
   .attr("transform", "translate(0," + height/2 + ")")
   .call(xAxis_bar_soc)
@@ -883,7 +1017,7 @@ function draw_bar_act(dataset) {
 
 function update(h) {
   // update position and text of label according to slider scale
-  handle.attr("cx", x(h));
+  handle.attr("cx", x_ref(h));
   // label
   //   .attr("x", x(h))
   //   .text(formatDate(h));
@@ -919,7 +1053,7 @@ function soc_bar_update(h) {
     // console.log((d.id / data_len) * length)
     // console.log('--------------')
     // return (d.id / data_len) * length < (h + 25);
-    return d.id < h + 0.5 ;
+    return d.id < h;
   })
 
   charg_dis_prices = newData.map(function(d) {return d.test_data * d.action })
@@ -930,25 +1064,9 @@ function soc_bar_update(h) {
   // console.log(newData)
   draw_bar_soc(newData);
   draw_bar_act(newData);
-
 }
 
 
-// add y-axis gridlines
-svg_100.selectAll("line.horizontalGrid").data(y_input.ticks(4)).enter()
-    .append("line")
-        .attr("class", "horizontalGrid")
-        .attr("x1", 0)
-        .attr("x2", width)
-        .attr("y1", function(d){ return y_input(d) - 24;})
-        .attr("y2", function(d){ return y_input(d) - 24;})
-        .attr("fill", "none")
-        .attr("shape-rendering", "crispEdges")
-        .attr("stroke", "grey")
-        .attr("stroke-width", "1px")
-        .attr("opacity", 0.2)
-        .style("stroke-dasharray", 4)
-        .attr("z-index", -1) 
 
 
 
