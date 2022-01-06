@@ -71,6 +71,19 @@
       stroke-opacity: 0.5;
       stroke-width: 1.25px;
     }
+
+    .x.axis_dates line{
+      stroke: #BEBEBE;
+      stroke-width: 0.5px;
+    }
+
+    .x.axis_dates path{
+      stroke: #BEBEBE;
+      stroke-width: 0.5px;
+    }
+
+
+
   </style>
 </head>
 
@@ -125,7 +138,7 @@ var x_input,y_input,
 var svg_100 = d3.select("#my_dataviz100")
     .append("svg")
     .attr("width", "100%")
-    .attr("height", height)  
+    .attr("height", height + 100)  
     .attr("transform", "translate(" + 20 + "," + 0 + ")")
 
 
@@ -145,7 +158,7 @@ y_input = d3.scaleLinear()
   // .domain([0, 0.5])
   .range([height, 0]);
 
-xAxis = d3.axisBottom().scale(x_input);
+xAxis = d3.axisBottom().scale(x_input).tickSizeOuter(0).tickValues([]);
 yAxis = d3.axisLeft().scale(y_input).tickSizeOuter(0).tickValues([]);
 
 input_line = d3.line()
@@ -204,6 +217,11 @@ var y_bar = d3.scaleLinear()
   .domain([-1, 1])
   .range([height, 0]);
 
+var y_bar_2 = d3.scaleLinear()
+  .domain([-1, 1])
+  .range([height, 0]);
+
+
 
 xAxis_bar_soc = d3.axisBottom().scale(x_bar).tickSizeOuter(0).tickValues([]);;
 yAxis_bar_soc = d3.axisRight().scale(y_bar)
@@ -213,11 +231,15 @@ x_dates = d3.scaleTime()
   .range([ 0, width])
 
 
-xAxis_dates_hours = d3.axisBottom().scale(x_dates).tickFormat(d3.timeFormat("")).ticks(d3.timeHour.every(1)).tickSize(5);
-xAxis_dates_noon = d3.axisBottom().scale(x_dates).tickFormat(d3.timeFormat("")).ticks(d3.timeHour.every(12)).tickSize(10);
-xAxis_dates_days = d3.axisBottom().scale(x_dates).tickFormat(d3.timeFormat("")).ticks(d3.timeHour.every(24)).tickSize(18.5);
+xAxis_dates_hours = d3.axisBottom().scale(x_dates).tickSizeOuter(0).tickFormat(d3.timeFormat("")).ticks(d3.timeHour.every(1)).tickSize(5);
+xAxis_dates_noon = d3.axisBottom().scale(x_dates).tickSizeOuter(0).tickFormat(d3.timeFormat("%a %d")).ticks(d3.timeHour.every(12)).tickSize(10);
+xAxis_dates_days = d3.axisBottom().scale(x_dates).tickSizeOuter(0).tickFormat(d3.timeFormat("")).ticks(d3.timeHour.every(24)).tickSize(18.5);
 
-
+// tick value on every second value
+var ticks = d3.select('#vis').selectAll(".tick text");
+ticks.each(function(_,i){
+    if(i%2 == 0) d3.select(this).remove();
+});
 
 
 
@@ -643,6 +665,7 @@ function info_line(cur_pos=null) {
             .style("opacity", "1")
 
           console.log((bar_data[bar_data.length-1]['date']))
+          console.log(d3.timeFormat("%H:%M %p")(x_dates.invert(pos.x)))
 
           info_line_time
             .text(bar_data[bar_data.length-1]['date'])
@@ -1065,7 +1088,6 @@ function soc_bar_update(h) {
   draw_bar_soc(newData);
   draw_bar_act(newData);
 }
-
 
 
 
