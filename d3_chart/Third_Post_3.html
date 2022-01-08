@@ -16,20 +16,26 @@
       color: #696969;
     }
 
+    #wrapper {
+      position:relative;
+    }
+
     #play-button {
-      position: absolute;
-      top: 315px;
-      left: 940px;
       background: #f08080;
-      padding-right: 26px;
       border-radius: 3px;
       border: none;
       color: white;
-      margin: 0;
       padding: 0 12px;
-      width: 100px;
       cursor: pointer;
       height: 30px;
+      width: 50px;
+      margin: 0 auto;
+      position: absolute;
+      right:  0;
+      bottom: ;
+
+
+    
     }
 
     #play-button:hover {
@@ -62,7 +68,7 @@
       pointer-events: stroke;
       stroke-width: 50px;
       stroke: transparent;
-      cursor: crosshair;
+      cursor: pointer;
     }
 
     .handle {
@@ -82,17 +88,39 @@
       stroke-width: 0.5px;
     }
 
+    .container { 
+    height: 200px;
+    position: relative;
+    border: 3px solid green; 
+  }
+
+  .my_dataviz100 {
+    position: relative;
+  }
+
+  .center {
+    margin: 0;
+    position: absolute;
+    top: 16.5%;
+    left: 80%;
+  }
+
 
 
   </style>
 </head>
 
 <body>
-  <div id="vis"></div>
-    <div id="my_dataviz100"></div>
-    
-    <button id="play-button">Simulate ⚡</button>
-    
+<!-- <div class="container"> -->
+    <div id="vis"></div>
+    <div id="my_dataviz100">
+    <!-- <div id="button_div">  </div>  -->
+
+  <div class="center">
+    <button id="play-button">Centered Button</button>
+  </div>
+</div>
+
 <script>
 
 // Adapted from: https://bl.ocks.org/officeofjane/47d2b0bfeecfcb41d2212d06d095c763
@@ -103,9 +131,9 @@ var parseDate = d3.timeParse("%m/%d/%y");
 var startDate = new Date("2004-11-01"),
     endDate = new Date("2017-04-01");
 
-var margin = {top:50, right:50, bottom:0, left:50},
+var margin = {top:10, right:25, bottom:0, left:50},
     width = 1100 - margin.left - margin.right
-    height = 300 - margin.top - margin.bottom;
+    height = 275 - margin.top - margin.bottom;
 
 
 var aspectRatio= '16:9';
@@ -115,8 +143,10 @@ var viewBox = '0 0 ' + aspectRatio.split(':').join(' ');
 
 var svg = d3.select("#vis")
     .append("svg")
-    .attr("width", "100%")
-    .attr("height", height - 200)  
+    .attr("width", width + margin.right + margin.left)
+    .attr("height", height - 225)  
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
 
     // .attr("viewBox", [-20, -10, width + 40, 100])
@@ -137,10 +167,35 @@ var x_input,y_input,
 // input line graph
 var svg_100 = d3.select("#my_dataviz100")
     .append("svg")
-    .attr("width", "100%")
-    .attr("height", height + 100)  
-    .attr("transform", "translate(" + 20 + "," + 0 + ")")
+    .attr("width", width + margin.right + margin.left + 50)
+    .attr("height", height + margin.bottom + margin.top + 0)  
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
+
+
+
+// button = d3.select("#my_dataviz100")
+//     .append("button")
+//     .attr("id", "play-button")
+//     .attr("class", "button")
+//     .text("Simulate ⚡")
+//     .style("height", "2.25em")
+//     .attr("right", "10em")
+  
+
+
+var svg_2 = d3.select("#button_div")
+    .append("svg")
+    .attr("width", width - 50)
+    .attr("height", 10)  
+
+
+button_ele = d3.select("#button_div").append("g")
+    .append("button")
+    .attr("id", "play-button")
+    .text("Simulate ⚡")
+    // .attr("id", "play-button")
 
 
 
@@ -154,7 +209,7 @@ var svg_100 = d3.select("#my_dataviz100")
 ////// INPUT LINE SETUP //////////
 
 x_input = d3.scaleLinear()
-  .range([margin.left, width])
+  .range([0, width])
   .clamp(true);
   // .domain([0, 100])
 
@@ -169,9 +224,6 @@ input_line = d3.line()
                 .curve(d3.curveBasis)
                 .x(function(d) { return x_input(d.id) })
                 .y(function(d) { return y_input(d.test_data) })
-
-
-
 
 
 
@@ -192,7 +244,10 @@ var targetValue = width;
 var dataset;
 var group = svg_100.append("g");
 
-var playButton = d3.select("#play-button");
+
+
+
+
     
 // var x = d3.scaleTime()
 //     .domain([startDate, endDate])
@@ -209,13 +264,13 @@ var x = d3.scaleLinear()
 
 var x_ref = d3.scaleLinear()
     .domain([0, 168])
-    .range([margin.left, width])
+    .range([0, width])
     .clamp(true);
 
 
 
 var x_bar = d3.scaleBand()
-  .range([margin.left, width])
+  .range([0, width])
 
 var y_bar = d3.scaleLinear()
   .domain([-1, 1])
@@ -232,7 +287,7 @@ yAxis_bar_soc = d3.axisRight().scale(y_bar).tickSizeOuter(0);
 
 
 x_dates = d3.scaleTime()
-  .range([margin.left, width])
+  .range([ 0, width])
 
 
 xAxis_dates_hours = d3.axisBottom().scale(x_dates).tickSizeOuter(0).tickFormat(d3.timeFormat("")).ticks(d3.timeHour.every(1)).tickSize(5);
@@ -255,10 +310,10 @@ xAxis_dates_days = d3.axisBottom().scale(x_dates).tickSizeOuter(0).tickFormat(d3
 svg_100.selectAll("line.horizontalGrid").data(y_input.ticks(4)).enter()
     .append("line")
         .attr("class", "horizontalGrid")
-        .attr("x1", margin.left)
+        .attr("x1", 0)
         .attr("x2", width)
-        .attr("y1", function(d){ return y_input(d) - 24;})
-        .attr("y2", function(d){ return y_input(d) - 24;})
+        .attr("y1", function(d){ return y_input(d);})
+        .attr("y2", function(d){ return y_input(d);})
         .attr("fill", "none")
         .attr("shape-rendering", "crispEdges")
         .attr("stroke", "grey")
@@ -326,7 +381,7 @@ svg_100.data(y_input.ticks(7)).enter()
 
 var slider = svg.append("g")
     .attr("class", "slider")
-    .attr("transform", "translate(" + 20 + "," + 25 + ")");
+    .attr("transform", "translate(" + 0 + "," + 10 + ")");
 
 
 
@@ -341,9 +396,7 @@ slider.append("line")
     .call(d3.drag()
         // .on("start.interrupt", function() { slider.interrupt(); })
         .on("drag", function() {
-          currentValue_mouse = d3.mouse(this);
           currentValue = d3.mouse(this)[0]
-          currentValue_bar = d3.event.x;
 
           // console.log(x(currentValue))
           // console.log(x.invert(currentValue))
@@ -357,13 +410,17 @@ slider.append("line")
           info_line(currentValue)
 
 
-          mousemoved(currentValue_mouse[0]);
+          mousemoved(currentValue);
         })   
     )
     .on("click", function() {
-      currentValue_mouse = d3.mouse(this);
-      update_offset(x.invert(currentValue))
-      mousemoved(currentValue_mouse[0]);
+      currentValue = d3.mouse(this)[0]
+      update_offset(x_ref.invert(currentValue))
+      update(x_ref.invert(currentValue));
+      soc_bar_update(x_ref.invert(currentValue));
+      
+      info_line(currentValue);
+      mousemoved(currentValue);
     })
     // .on("mousemove", mousemoved)
 
@@ -803,19 +860,19 @@ d3.csv(file, prepare, function(data) {
 
   svg_Xdates = svg.append("g")
     .attr("class", "x axis_dates")
-    .attr("transform", "translate(20," + 25 + ")")
+    .attr("transform", "translate(0," + 10 + ")")
     .call(xAxis_dates_hours)
   
 
   svg_Xdates_noon = svg.append("g")
     .attr("class", "x axis_dates")
-    .attr("transform", "translate(20," + 25 + ")")
+    .attr("transform", "translate(0," + 10 + ")")
     .call(xAxis_dates_noon)
   
 
   svg_Xdates_days = svg.append("g")
     .attr("class", "x axis_dates")
-    .attr("transform", "translate(20," + 25 + ")")
+    .attr("transform", "translate(0," + 10 + ")")
     .call(xAxis_dates_days)
  
 
@@ -883,6 +940,7 @@ function prepare(d) {
 
 
 function step() {
+  console.log(currentValue)
   if (currentValue < 0) {
     currentValue = 0
   }
@@ -890,25 +948,19 @@ function step() {
   currentValue = currentValue + (targetValue/250);
   // console.log(x.invert(currentValue))
 
-  update(x.invert(currentValue))
-  update_offset(x.invert(currentValue))
+  update_offset(x_ref.invert(currentValue))
+  update(x_ref.invert(currentValue));
+  soc_bar_update(x_ref.invert(currentValue));
+  
+  info_line(currentValue);
+  mousemoved(currentValue);
 
-
-  mousemoved(currentValue)
-  soc_bar_update(x_ref.invert(currentValue))
-  // mousemoved.call(slider);
-  // slider.on("start drag", mousemoved)
-  // console.log(currentValue)
-  // console.log(targetValue)
 
   if (currentValue > targetValue) {
-    // console.log("here")
     moving = false;
     currentValue = 0;
     clearInterval(timer);
-    // timer = 0;
     playButton.text("Simulate ⚡");
-    // console.log("Slider moving: " + moving);
   }
 }
 
@@ -934,7 +986,7 @@ soc_Yaxis = svg_100.append("g")
   .attr("class", "y axis_soc")
   .call(yAxis_bar_soc)
   .attr("transform", "translate(" + width + "," + 0 + ")")
-  .select(".domain").remove();
+  // .select(".domain").remove();
 
 
 
@@ -968,7 +1020,7 @@ svg_input_Xaxis = svg_100.append("g")
 
 svg_input_Yaxis = svg_100.append("g")
   .attr("class", "y axis")
-  .attr("transform", "translate(" + 10 + "," + height + ")")
+  .attr("transform", "translate(0," +  0 + ")")
   .call(yAxis)
   // .select(".domain").remove();
 
@@ -1033,7 +1085,7 @@ function draw_bar_act(dataset) {
     .data(dataset);
 
   // plot.selectAll("rect").remove();
-  console.log("redraw")
+  // console.log("redraw")
 
   // if filtered dataset has more circles than already existing, transition new ones in
   locations_2
@@ -1162,7 +1214,7 @@ var resize = function(e) {
 
   d3.select("#my_dataviz100").select("svg").attr("width", width)
   svg_100.attr("width", width)
-  x_input.range([margin.left, output_graph_width]);
+  x_input.range([0, output_graph_width]);
   y_input.range([height, 0]);
 
   xAxis.scale(x_input);
@@ -1181,8 +1233,8 @@ var resize = function(e) {
 
 
   // update svg soc-bar chart /////////////////////////////////////////////////////////
-  x_bar.range([margin.left, output_graph_width])
-  x_ref.range([margin.left, output_graph_width])
+  x_bar.range([0, output_graph_width])
+  x_ref.range([0, output_graph_width])
 
   xAxis_bar_soc.scale(x_bar)
   yAxis_bar_soc.scale(y_bar)
@@ -1196,6 +1248,7 @@ var resize = function(e) {
   draw_bar_soc(dataset)
 
   // update svg action-bar chart /////////////////////////////////////////////////////////
+  d3.select("#button_div").attr("width", output_graph_width - 50)
 
 
 
@@ -1203,7 +1256,7 @@ var resize = function(e) {
   // d3.select("#my_dataviz100").select("svg").attr("width", width)
   d3.select("#vis").select("svg").attr("width", width)
 
-  x.range([margin.left, output_graph_width])
+  x.range([0, output_graph_width])
 
 
   svg.select('.track').attr("x2", x.range()[1])
