@@ -9,6 +9,11 @@
   <meta charset="utf-8">
   <script src="https://d3js.org/d3.v4.min.js"></script>
  <script src="https://unpkg.com/d3-simple-slider"></script>
+ <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+ <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+
   <style>
     body {
       font-family:"avenir next", Arial, sans-serif;
@@ -25,16 +30,15 @@
       border-radius: 3px;
       border: none;
       color: white;
-      padding: 0 12px;
+      padding: 0 10px;
       cursor: pointer;
-      height: 30px;
-      width: 50px;
+      height: 10px;
       margin: 0 auto;
       position: absolute;
       right:  0;
-      bottom: ;
-
-
+      padding: 0 12px;
+      height: 30px;
+      width: 100px;
     
     }
 
@@ -61,6 +65,7 @@
 
     .track-inset {
       stroke: #BEBEBE;
+      opacity:  0.8;
       stroke-width: 4px;
     }
 
@@ -91,38 +96,112 @@
     .container { 
     height: 200px;
     position: relative;
-    border: 3px solid green; 
-  }
-
-  .my_dataviz100 {
-    position: relative;
+    border: none; 
   }
 
   .center {
     margin: 0;
     position: absolute;
-    top: 16.5%;
-    left: 80%;
+    top: 100%;
+    left: 100%;
+    /*transform: translate(-100%, -100%);*/
+  }
+
+/*  input {
+      color: #424242;
+      font-size: 1.2em;
+      padding: 10px 10px 5px 5px;
+      display: block;
+      width: 300px;
+      border: none;
+      border-bottom: 1px solid #607D8B;
+  }
+  input:focus {
+      outline: none;
+  }
+
+  label.input-label {
+      color: #616161;
+      position: absolute;
+  }
+
+  input:focus ~ label.input-label {
+      color: #0288D1;
+  }
+
+  input[readonly] ~ label.input-label {
+      top: -15px;
+      font-size: 0.9em;
+  }
+
+  .bar {
+      position: relative;
+      display: block;
+      width: 315px;
+  }
+
+  .bar:before,
+  .bar:after {
+      background: #0288D1;
+      content: '';
+      height: 2px;
+      width: 0;
+      bottom: 1px;
+      position: absolute;
+      transition: 0.2s ease all;
+      -moz-transition: 0.2s ease all;
+      -webkit-transition: 0.2s ease all;
+  }
+
+  .bar:before {
+      left: 50%;
+  }
+
+  .bar:after {
+      right: 50%;
+  }
+
+  input:focus ~ .bar:before,
+  input:focus ~ .bar:after {
+      width: 50%;
   }
 
 
-
+*/
   </style>
 </head>
 
 <body>
-<!-- <div class="container"> -->
-    <div id="vis"></div>
-    <div id="my_dataviz100">
-    <!-- <div id="button_div">  </div>  -->
 
+    <div id="vis"></div>
+    <div id="my_dataviz100"></div>
+    <!-- <div id="button_div">  </div>  -->
+<div class="container">
   <div class="center">
-    <button id="play-button">Centered Button</button>
+    <button id="play-button">Simulate ⚡</button>
   </div>
 </div>
 
-<script>
+<div class="group">
+  <input type="text" id="calendar-tomorrow">
 
+  <label class="input-label">From tomorrow</label>
+</div>
+
+
+
+<script>
+  console.log()
+var date_pick = flatpickr('#calendar-tomorrow', {
+    "minDate": new Date().fp_incr(1),
+    "maxDate": new Date().fp_incr(7)
+});
+console.log(date_pick)
+</script>
+
+
+
+<script>
 // Adapted from: https://bl.ocks.org/officeofjane/47d2b0bfeecfcb41d2212d06d095c763
 var formatDateIntoYear = d3.timeFormat("%Y");
 var formatDate = d3.timeFormat("%b %Y");
@@ -185,20 +264,22 @@ var svg_100 = d3.select("#my_dataviz100")
   
 
 
-var svg_2 = d3.select("#button_div")
-    .append("svg")
-    .attr("width", width - 50)
-    .attr("height", 10)  
+// var svg_2 = d3.select("#button_div")
+//     .append("svg")
+//     .attr("width", width - 50)
+//     .attr("height", 10)  
 
 
-button_ele = d3.select("#button_div").append("g")
-    .append("button")
-    .attr("id", "play-button")
-    .text("Simulate ⚡")
+// button_ele = d3.select("#button_div").append("g")
+//     .append("button")
+//     .attr("id", "play-button")
+//     .text("Simulate ⚡")
     // .attr("id", "play-button")
 
 
-
+searchcolumn = d3.select(".container")
+                    .style("width", (width + margin.left)+ 'px')
+                    .style("height", 0 + 'px');
 
 
 
@@ -259,7 +340,7 @@ var group = svg_100.append("g");
 
 var x = d3.scaleLinear()
    .domain([0, 168])
-    .range([margin.left, width])
+    .range([0, width])
     .clamp(true);
 
 var x_ref = d3.scaleLinear()
@@ -287,13 +368,15 @@ yAxis_bar_soc = d3.axisRight().scale(y_bar).tickSizeOuter(0);
 
 
 x_dates = d3.scaleTime()
-  .range([ 0, width])
+  .range([0, width])
 
 
 xAxis_dates_hours = d3.axisBottom().scale(x_dates).tickSizeOuter(0).tickFormat(d3.timeFormat("")).ticks(d3.timeHour.every(1)).tickSize(5);
-xAxis_dates_noon = d3.axisBottom().scale(x_dates).tickSizeOuter(0).tickFormat(d3.timeFormat("%a %d")).ticks(d3.timeHour.every(12)).tickSize(10);
+xAxis_dates_noon = d3.axisBottom().scale(x_dates).tickSizeOuter(0).tickFormat(d3.timeFormat("%d/%m")).ticks(d3.timeHour.every(12)).tickSize(10);
 xAxis_dates_days = d3.axisBottom().scale(x_dates).tickSizeOuter(0).tickFormat(d3.timeFormat("")).ticks(d3.timeHour.every(24)).tickSize(18.5);
 
+
+xAxis_dates_days_main_divide = d3.axisBottom().scale(x_dates).tickSizeOuter(0).tickFormat(d3.timeFormat("%A")).ticks(d3.timeHour.every(24)).tickSize(height);
 
 
 
@@ -312,14 +395,14 @@ svg_100.selectAll("line.horizontalGrid").data(y_input.ticks(4)).enter()
         .attr("class", "horizontalGrid")
         .attr("x1", 0)
         .attr("x2", width)
-        .attr("y1", function(d){ return y_input(d);})
-        .attr("y2", function(d){ return y_input(d);})
+        .attr("y1", function(d){ return y_input(d) + 27.5;})
+        .attr("y2", function(d){ return y_input(d) + 27.5;})
         .attr("fill", "none")
         .attr("shape-rendering", "crispEdges")
         .attr("stroke", "grey")
-        .attr("stroke-width", "1px")
+        .attr("stroke-width", "0.5px")
         .attr("opacity", 0.4)
-        .style("stroke-dasharray", 4)
+        // .style("stroke-dasharray", 4)
         .attr("z-index", -1) 
 
 // add x-axis time markers - minor ticks (hours)
@@ -395,7 +478,7 @@ slider.append("line")
     .attr("class", "track-overlay")
     .call(d3.drag()
         // .on("start.interrupt", function() { slider.interrupt(); })
-        .on("drag", function() {
+        .on("start drag", function() {
           currentValue = d3.mouse(this)[0]
 
           // console.log(x(currentValue))
@@ -456,7 +539,7 @@ var profit_label = svg_100.append("g").append("text")
     .attr("font-size", "13")
     // .text("Profit 💰: this is a test ")
     // .attr("transform", "translate(" + (width - 125)  + "," + (height + 20) + ")")
-    .attr("transform", "translate(" + (width - 110) + "," + (height -10) + ")")
+    .attr("transform", "translate(" + (width - 111) + "," + (height - 5) + ")")
 
 
 var info_line_text = svg_100.append("g").append("text")  
@@ -780,6 +863,7 @@ function info_line(cur_pos=null) {
       info_line_text.style("opacity", "0")
       info_line_text2.style("opacity", "0")
       info_line_text3.style("opacity", "0")
+      info_line_time.style("opacity", "0")
   })
 
 
@@ -788,6 +872,10 @@ function info_line(cur_pos=null) {
       .select(".mouse-line")
       .style("opacity", "0")
       point_input.style("opacity", "0")
+      info_line_text.style("opacity", "0")
+      info_line_text2.style("opacity", "0")
+      info_line_text3.style("opacity", "0")
+      info_line_time.style("opacity", "0")
   })
 
 
@@ -885,15 +973,56 @@ d3.csv(file, prepare, function(data) {
 
   svg_Xdates_noon.selectAll('.tick text')
       .style("text-transform", "uppercase")
+      .attr("fill","grey")
       .attr("transform", "translate(0," + (-30) + ")")
 
 
   // svg_Xdates_noon.selectAll(".tick text").remove()
+  svg_Xdates_days_main = svg_100.append("g")
+    .attr("class", "x axis_dates_main")
+    .call(xAxis_dates_days_main_divide)
+        .attr("fill", "none")
+        .attr("shape-rendering", "crispEdges")
+        .attr("stroke", "grey")
+        .attr("stroke-width", "0.5px")
+        .attr("opacity", 0.2)
+        // .style("stroke-dasharray", 4)
+    .select(".domain").remove();
+
+
+  d3.select(".x.axis_dates_main").selectAll('.tick text')
+      .style("text-transform", "uppercase")
+      .attr("opacity", 0.6)
+      .attr("text-anchor", "start")
+      .attr("font-size", "18")
+      .attr('transform', 'translate(' + ((-width / 7) +10) + ',' + (height - 2) + ')rotate(-90)')
+
+  // primary y-axis label
+  svg_100.append("text")
+      .attr("text-anchor", "start")
+      .attr("y", -margin.left+20)
+      .attr("x", -margin.top)
+      .text("Price (£/MW)")
+      .attr("fill","grey")
+      .attr('transform', 'translate(' + 0 + ',' + ((height / 2) + 25) + ')rotate(-90)')
+
+  // primary x-axis label
+  svg_100.append("text")
+      .attr("text-anchor", "start")
+      .attr("y", -margin.left+20)
+      .attr("x", -margin.top)
+      .text("SoC & Normalised Action")
+      .attr("fill","grey")
+      .attr('transform', 'translate(' + (width + 75) + ',' + ((height / 2) + 65) + ')rotate(-90)')
+
+
+
 
 
   svg_Xdates.lower()
   svg_Xdates_noon.lower()
   svg_Xdates_days.lower()
+  svg_Xdates_days_main.lower()
 
 
   // console.log("intial")
@@ -986,7 +1115,7 @@ soc_Yaxis = svg_100.append("g")
   .attr("class", "y axis_soc")
   .call(yAxis_bar_soc)
   .attr("transform", "translate(" + width + "," + 0 + ")")
-  // .select(".domain").remove();
+  .select(".domain").remove();
 
 
 
@@ -1022,10 +1151,34 @@ svg_input_Yaxis = svg_100.append("g")
   .attr("class", "y axis")
   .attr("transform", "translate(0," +  0 + ")")
   .call(yAxis)
-  // .select(".domain").remove();
+  .select(".domain").remove();
+
+  // format all tick marks
+  svg_100.select('.y.axis_soc').selectAll('.tick text')
 
 
+  // only include secondary ticks (seconday axis)
+  svg_100.select('.y.axis_soc').selectAll('.tick').each(function(_,i) {
+    if (i%2==0) {
+      d3.select(this).remove()
+    }
+  })
 
+
+  // only include secondary ticks (primary axis)
+  svg_100.select('.y.axis').selectAll('.tick').each(function(_,i) {
+    if (i%2==0) {
+      d3.select(this).remove()
+    }
+  })
+
+
+  svg_100.selectAll('.tick')
+        .attr("fill", "none")
+        .attr("shape-rendering", "crispEdges")
+        .attr("stroke", "grey")
+        .attr("stroke-width", "0.0px")
+        .attr("opacity", 0.4)
 
 
 function draw_price_line(data) {
@@ -1229,7 +1382,8 @@ var resize = function(e) {
   update_offset(1000, resize=true)
 
   // update sub-path line chart /////////////////////////////////////////////////////////
-  // svg_100.select('.subpath').attr("d", input_line(dataset))
+  searchcolumn = d3.select(".container")
+                    .style("width", (output_graph_width)+ 'px')
 
 
   // update svg soc-bar chart /////////////////////////////////////////////////////////
