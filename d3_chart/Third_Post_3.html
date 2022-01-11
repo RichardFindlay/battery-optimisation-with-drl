@@ -183,25 +183,48 @@
 </div>
 
 <div class="group">
-  <input type="text" id="calendar-tomorrow">
-
-  <label class="input-label">From tomorrow</label>
+   Start Date: <input type="text" id="calendar-tomorrow">
+ <label class="input-label"></label>
 </div>
 
 
 
 <script>
-  console.log()
-var date_pick = flatpickr('#calendar-tomorrow', {
-    "minDate": new Date().fp_incr(1),
-    "maxDate": new Date().fp_incr(7)
-});
-console.log(date_pick)
+
+$("#calendar-tomorrow").flatpickr({
+    mode: 'single',
+    onChange: function(dates) {
+
+            //  remove existing data
+            svg_100.selectAll('rect').remove();
+
+
+            var filter_date = new Date(dates[0]);
+            console.log(filter_date)
+            var end_date = new Date(filter_date.setDate(filter_date.getDate() + 7));
+            console.log(end_date)
+
+            // pass filtered data to graphs
+            draw_bar_soc(dataset, startDate = filter_date, endDate = end_date)
+            draw_bar_act(dataset, startDate = filter_date, endDate = end_date)
+
+              var newDataDatePath = dataset.filter(function(d) {
+                return startDate < d.date < endDate;
+              })
+
+            svg_100.select('.line').attr("d", input_line(newDataDatePath))
+            svg_100.select('.subpath').attr("d", input_line(newDataDatePath))
+
+        }
+    })
+
 </script>
 
 
 
 <script>
+
+
 // Adapted from: https://bl.ocks.org/officeofjane/47d2b0bfeecfcb41d2212d06d095c763
 var formatDateIntoYear = d3.timeFormat("%Y");
 var formatDate = d3.timeFormat("%b %Y");
@@ -400,8 +423,8 @@ svg_100.selectAll("line.horizontalGrid").data(y_input.ticks(4)).enter()
         .attr("fill", "none")
         .attr("shape-rendering", "crispEdges")
         .attr("stroke", "grey")
-        .attr("stroke-width", "0.5px")
-        .attr("opacity", 0.4)
+        .attr("stroke-width", "0.2px")
+        .attr("opacity", 0.3)
         // .style("stroke-dasharray", 4)
         .attr("z-index", -1) 
 
@@ -909,20 +932,33 @@ var plot = svg_100.append("g")
     // .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
 d3.csv(file, prepare, function(data) {
+
+  datefil = new Date(2015, 0, 8)
+
+  datanew = data.filter(function(row) {
+      return row['date'] < datefil;
+  })
+
+  console.log(new Date(2015, 0, 8))
+  
   dataset = data;
 
 
+  console.log(dataset)
+  console.log(datanew['date'])
+
+
     //  plot bars for soc
-  x_bar.domain(data.map(function(d) { return d.id; }))
+  x_bar.domain(datanew.map(function(d) { return d.id; }))
     .padding(0.2);
 
 
   // drawPlot(dataset);
-  draw_price_line(dataset);
-  draw_bar_soc(dataset);
-  draw_bar_act(dataset);
+  draw_price_line(datanew);
+  draw_bar_soc(datanew);
+  draw_bar_act(datanew);
 
-  charg_dis_prices = data.map(function(d) {return d.test_data * d.action })
+  charg_dis_prices = datanew.map(function(d) {return d.test_data * d.action })
   profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
   profit_label.text("Profit 💰:" + formatter.format(profit))
 
@@ -932,19 +968,19 @@ d3.csv(file, prepare, function(data) {
 
   // instantiate line graph plot
   var path = svg_100.append("path")
-    .datum(dataset)
+    .datum(datanew)
     .attr("class", "line")
     .attr("fill", "none")
     .attr("opacity", 0.8)
     .attr("stroke", "#293241")
     .attr("stroke-width", 1.75)
-    .attr("d", input_line(dataset))
+    .attr("d", input_line(datanew))
     // .on("mousemove", mousemoved);
 
   var length = path.node().getTotalLength();
 
 
-  x_dates.domain(d3.extent(dataset, function(d){return d.date;}))
+  x_dates.domain(d3.extent(datanew, function(d){return d.date;}))
 
   svg_Xdates = svg.append("g")
     .attr("class", "x axis_dates")
@@ -992,7 +1028,8 @@ d3.csv(file, prepare, function(data) {
 
   d3.select(".x.axis_dates_main").selectAll('.tick text')
       .style("text-transform", "uppercase")
-      .attr("opacity", 0.6)
+      .style("background", "red")
+      .attr("opacity", 0.5)
       .attr("text-anchor", "start")
       .attr("font-size", "18")
       .attr('transform', 'translate(' + ((-width / 7) +10) + ',' + (height - 2) + ')rotate(-90)')
@@ -1195,9 +1232,16 @@ function draw_price_line(data) {
 
 
 
-function draw_bar_soc(dataset) {
+function draw_bar_soc(dataset, startDate = new Date(2015, 1, 1), endDate = new Date(2015, 1, 8)) {
+
+  // filtered data on date range
+  var newDataDate = dataset.filter(function(d) {
+    return startDate < d.date < endDate;
+  })
+
+
   var locations = plot.selectAll(".location")
-    .data(dataset);
+    .data(newDataDate);
 
   // plot.selectAll("rect").remove();
 
@@ -1233,9 +1277,15 @@ function draw_bar_soc(dataset) {
 }
 
 
-function draw_bar_act(dataset) {
+function draw_bar_act(dataset, startDate = new Date(2015, 1, 1), endDate = new Date(2015, 1, 8)) {
+
+  // filtered data on date range
+  var newDataDate = dataset.filter(function(d) {
+    return startDate < d.date < endDate;
+  })
+
   var locations_2 = plot.selectAll(".location_2")
-    .data(dataset);
+    .data(newDataDate);
 
   // plot.selectAll("rect").remove();
   // console.log("redraw")
@@ -1305,21 +1355,12 @@ function soc_bar_update(h) {
 
   // filter data set and redraw plot
   var newData = dataset.filter(function(d) {
-    // console.log('--------------')
-    // // console.log(h)
-    // console.log(d.id)
-    // console.log(data_len)
-    // console.log(h)
-    // console.log((d.id / data_len) * length)
-    // console.log('--------------')
-    // return (d.id / data_len) * length < (h + 25);
     return d.id < h;
   })
 
   charg_dis_prices = newData.map(function(d) {return d.test_data * d.action })
   profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
   profit_label.text("Profit 💰:" + formatter.format(profit))
-
 
   // console.log(newData)
   draw_bar_soc(newData);
