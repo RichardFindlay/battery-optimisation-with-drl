@@ -203,23 +203,37 @@ $("#calendar-tomorrow").flatpickr({
             end_date = new Date(dates)
             end_date.setDate(end_date.getDate() + 7);
 
-            console.log(filter_date)
-            console.log(end_date)
+
+            var newDataDatePath = dataset.filter(function(d) {
+              return d.date >= filter_date && d.date <= end_date;
+            })
+
+            // remove existing bars on bar chart
+            plot.selectAll(".location").remove()
+            plot.selectAll(".location_2").remove()
+
+
+
+            // update domains
+             x_bar.domain(newDataDatePath.map(function(d) { return d.id; })).padding(0.2);
+             x_ref.domain([d3.min(newDataDatePath, function(d) { return +d.id; }), d3.max(newDataDatePath, function(d) { return +d.id; })])
+             x_input.domain([d3.min(newDataDatePath, function(d) { return +d.id; }), d3.max(newDataDatePath, function(d) { return +d.id; })])
+             x.domain([d3.min(newDataDatePath, function(d) { return +d.id; }), d3.max(newDataDatePath, function(d) { return +d.id; })])
+             x_dates.domain(d3.extent(newDataDatePath, function(d){return d.date;}))
+
+             xAxis_dates_hours.scale(x_dates)
 
             // pass filtered data to graphs
             draw_bar_soc(dataset, startDate = filter_date, endDate = end_date)
             draw_bar_act(dataset, startDate = filter_date, endDate = end_date)
 
-            var newDataDatePath = dataset.filter(function(d) {
-              return d.date > filter_date && d.date < end_date;
-            })
-
-            x_input_date.domain(d3.extent(newDataDatePath, function(d){return d.date;}))
-
-            console.log(newDataDatePath)
 
             svg_100.select('.line').attr("d", input_line(newDataDatePath))
             svg_100.select('.subpath').attr("d", input_line(newDataDatePath))
+
+            // reset slider to zero
+            handle.attr("cx", x(0))
+
 
         }
     })
@@ -269,7 +283,11 @@ var x_input,y_input,
     dataset,
     height,
     margin,
-    length
+    length,
+    x_bar,
+    x_ref,
+    x,
+    newDataDate
 
 
 
@@ -367,13 +385,13 @@ var group = svg_100.append("g");
 
 
 
-
-
     
 // var x = d3.scaleTime()
 //     .domain([startDate, endDate])
 //     .range([0, targetValue])
 //     .clamp(true);
+
+
 
 
 ////// SOC BAR SETUP //////////
@@ -400,7 +418,6 @@ var y_bar = d3.scaleLinear()
 var y_bar_2 = d3.scaleLinear()
   .domain([-1, 1])
   .range([height, 0]);
-
 
 
 xAxis_bar_soc = d3.axisBottom().scale(x_bar).tickSizeOuter(0).tickValues([]);
@@ -1260,13 +1277,15 @@ function draw_bar_soc(dataset, startDate = new Date(2015, 0, 1), endDate = new D
 
   // filtered data on date range
   var newDataDate = dataset.filter(function(d) {
-    return (d.date > startDate && d.date < endDate);
+    return (d.date >= startDate && d.date <= endDate);
   })
-
 
 
   var locations = plot.selectAll(".location")
     .data(newDataDate);
+
+  console.log('newDataDate')
+  console.log(newDataDate)
 
   // plot.selectAll("rect").remove();
 
@@ -1310,7 +1329,7 @@ function draw_bar_act(dataset, startDate = new Date(2015, 0, 1), endDate = new D
 
   // filtered data on date range
   var newDataDate = dataset.filter(function(d) {
-    return d.date > startDate && d.date < endDate;
+    return d.date >= startDate && d.date <= endDate;
   })
 
   var locations_2 = plot.selectAll(".location_2")
