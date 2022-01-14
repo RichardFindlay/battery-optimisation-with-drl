@@ -205,13 +205,12 @@ $("#calendar-tomorrow").flatpickr({
 
 
             var newDataDatePath = dataset.filter(function(d) {
-              return d.date >= filter_date && d.date <= end_date;
+              return d.date >= filter_date && d.date < end_date;
             })
 
             // remove existing bars on bar chart
             plot.selectAll(".location").remove()
             plot.selectAll(".location_2").remove()
-
 
 
             // update domains
@@ -221,11 +220,14 @@ $("#calendar-tomorrow").flatpickr({
              x.domain([d3.min(newDataDatePath, function(d) { return +d.id; }), d3.max(newDataDatePath, function(d) { return +d.id; })])
              x_dates.domain(d3.extent(newDataDatePath, function(d){return d.date;}))
 
+
              xAxis_dates_hours.scale(x_dates)
 
             // pass filtered data to graphs
             draw_bar_soc(dataset, startDate = filter_date, endDate = end_date)
             draw_bar_act(dataset, startDate = filter_date, endDate = end_date)
+
+            console.log(newDataDatePath)
 
 
             svg_100.select('.line').attr("d", input_line(newDataDatePath))
@@ -234,6 +236,17 @@ $("#calendar-tomorrow").flatpickr({
             // reset slider to zero
             handle.attr("cx", x(0))
 
+            dataset_update = newDataDatePath
+
+            // make sure path is drawn in full
+            update_offset(1000, resize=true)
+
+            // update tick text for dates
+            svg.select('.x.axis_dates').call(xAxis_dates_noon)
+            svg_100.select(".x.axis_dates_main").call(xAxis_dates_days_main_divide)
+
+            // svg_Xdates_days_main
+            //   .call(xAxis_dates_days_main_divide)
 
         }
     })
@@ -281,12 +294,15 @@ var x_input,y_input,
     svg_input_Xaxis_date,
     svg_input_Yaxis,
     dataset,
+    dataset_update,
     height,
     margin,
     length,
     x_bar,
     x_ref,
     x,
+    filter_date, 
+    end_date,
     newDataDate
 
 
@@ -381,6 +397,7 @@ var moving = false;
 var currentValue = 0;
 var targetValue = width;
 var dataset;
+var dataset_update;
 var group = svg_100.append("g");
 
 
@@ -683,6 +700,25 @@ function getSum(total, num) {
 }
 
 
+// reload data
+function reload_data() {
+d3.csv(file, prepare, function(data) {
+  //  reload and filter for specified date range
+
+
+  datanew = data.filter(function(row) {
+      return row['date'] < datefil;
+  })
+
+  // console.log(new Date(2015, 0, 8))
+  
+  dataset = data;
+
+})
+}
+
+
+
 
 function mousemoved(current_coords) {
 
@@ -701,10 +737,10 @@ function mousemoved(current_coords) {
         []
     ];
     
-    for (var i = 0; i < dataset.length; i++) {
+    for (var i = 0; i < dataset_update.length; i++) {
         // console.log(dataset[i])
-        var coord_id = dataset[i]['id'];
-        var coord_test_data = dataset[i]['test_data'];
+        var coord_id = dataset_update[i]['id'];
+        var coord_test_data = dataset_update[i]['test_data'];
         // console.log(dataset[i]['test_data'])
 
 
@@ -806,13 +842,13 @@ function info_line(cur_pos=null) {
         []
     ];
 
-    for (var i = 0; i < dataset.length; i++) {
+    for (var i = 0; i < dataset_update.length; i++) {
         // console.log(dataset[i])
-        var coord_id = dataset[i]['id'];
-        var coord_test_data1 = dataset[i]['action'];
-        var coord_test_data2 = dataset[i]['soc'];
-        var coord_test_data3 = dataset[i]['date'];
-        var coord_test_data4 = dataset[i]['test_data'];
+        var coord_id = dataset_update[i]['id'];
+        var coord_test_data1 = dataset_update[i]['action'];
+        var coord_test_data2 = dataset_update[i]['soc'];
+        var coord_test_data3 = dataset_update[i]['date'];
+        var coord_test_data4 = dataset_update[i]['test_data'];
         // console.log(dataset[i]['test_data'])
 
 
@@ -976,6 +1012,9 @@ d3.csv(file, prepare, function(data) {
   // console.log(new Date(2015, 0, 8))
   
   dataset = data;
+  dataset_update = datanew;
+
+  console.log(datanew)
 
 
   // console.log(dataset)
@@ -1273,19 +1312,19 @@ function draw_price_line(data) {
 
 
 
-function draw_bar_soc(dataset, startDate = new Date(2015, 0, 1), endDate = new Date(2015, 0, 8)) {
+function draw_bar_soc(bar_data, startDate = new Date(2015, 0, 1), endDate = new Date(2015, 0, 8)) {
 
   // filtered data on date range
-  var newDataDate = dataset.filter(function(d) {
-    return (d.date >= startDate && d.date <= endDate);
+  var newDataDate = bar_data.filter(function(d) {
+    return (d.date >= startDate && d.date < endDate);
   })
 
 
   var locations = plot.selectAll(".location")
     .data(newDataDate);
 
-  console.log('newDataDate')
-  console.log(newDataDate)
+  // console.log('newDataDate')
+  // console.log(newDataDate)
 
   // plot.selectAll("rect").remove();
 
@@ -1321,15 +1360,15 @@ function draw_bar_soc(dataset, startDate = new Date(2015, 0, 1), endDate = new D
 }
 
 
-function draw_bar_act(dataset, startDate = new Date(2015, 0, 1), endDate = new Date(2015, 0, 8)) {
+function draw_bar_act(bar_data, startDate = new Date(2015, 0, 1), endDate = new Date(2015, 0, 8)) {
 
-  console.log("gemrnpitnh=ewnrhenw[rw5enhg[w")
-  console.log(startDate)
-  console.log(endDate)
+  // console.log("gemrnpitnh=ewnrhenw[rw5enhg[w")
+  // console.log(startDate)
+  // console.log(endDate)
 
   // filtered data on date range
-  var newDataDate = dataset.filter(function(d) {
-    return d.date >= startDate && d.date <= endDate;
+  var newDataDate = bar_data.filter(function(d) {
+    return d.date >= startDate && d.date < endDate;
   })
 
   var locations_2 = plot.selectAll(".location_2")
@@ -1402,17 +1441,19 @@ function soc_bar_update(h) {
   // const data_len = dataset.length
 
   // filter data set and redraw plot
-  var newData = dataset.filter(function(d) {
-    return d.id < h;
+  var newData = dataset_update.filter(function(d) {
+    return d.id <= h;
   })
+
 
   charg_dis_prices = newData.map(function(d) {return d.test_data * d.action })
   profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
   profit_label.text("Profit 💰:" + formatter.format(profit))
 
   // console.log(newData)
-  draw_bar_soc(newData);
-  draw_bar_act(newData);
+  draw_bar_soc(newData, startDate = filter_date, endDate = end_date);
+  draw_bar_act(newData, startDate = filter_date, endDate = end_date);
+
 }
 
 
