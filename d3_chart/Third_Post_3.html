@@ -107,67 +107,31 @@
     /*transform: translate(-100%, -100%);*/
   }
 
-/*  input {
+  .group { 
+    height: 50px;
+    position: relative;
+    border: none; 
+    top: 0%;
+    left: 4em;
+  }
+
+  input {
       color: #424242;
-      font-size: 1.2em;
-      padding: 10px 10px 5px 5px;
-      display: block;
-      width: 300px;
+      /*font-size: 1.2em;*/
+      padding: 0px 0px 0px 0px;
+      /*display: block;*/
+      width: 90px;
+      height:  20px;
       border: none;
-      border-bottom: 1px solid #607D8B;
-  }
-  input:focus {
-      outline: none;
-  }
+      border-bottom: 1px solid;
+      font-size:  1em;
+      /*position:  absolute;*/
+      text-align: center;
 
-  label.input-label {
-      color: #616161;
-      position: absolute;
-  }
-
-  input:focus ~ label.input-label {
-      color: #0288D1;
-  }
-
-  input[readonly] ~ label.input-label {
-      top: -15px;
-      font-size: 0.9em;
-  }
-
-  .bar {
-      position: relative;
-      display: block;
-      width: 315px;
-  }
-
-  .bar:before,
-  .bar:after {
-      background: #0288D1;
-      content: '';
-      height: 2px;
-      width: 0;
-      bottom: 1px;
-      position: absolute;
-      transition: 0.2s ease all;
-      -moz-transition: 0.2s ease all;
-      -webkit-transition: 0.2s ease all;
-  }
-
-  .bar:before {
-      left: 50%;
-  }
-
-  .bar:after {
-      right: 50%;
-  }
-
-  input:focus ~ .bar:before,
-  input:focus ~ .bar:after {
-      width: 50%;
   }
 
 
-*/
+
   </style>
 </head>
 
@@ -183,10 +147,9 @@
 </div>
 
 <div class="group">
-   Start Date: <input type="text" id="calendar-tomorrow">
+   Start Date: <input type="text" id="calendar-tomorrow" placeholder="2015-01-01 ⬇️">
  <label class="input-label"></label>
 </div>
-
 
 
 <script>
@@ -212,6 +175,9 @@ $("#calendar-tomorrow").flatpickr({
             plot.selectAll(".location").remove()
             plot.selectAll(".location_2").remove()
 
+            svg_Xdates_noon.selectAll(".tick").remove()
+            d3.select(".x.axis_dates_main").selectAll('.tick').remove()
+
 
             // update domains
              x_bar.domain(newDataDatePath.map(function(d) { return d.id; })).padding(0.2);
@@ -219,6 +185,8 @@ $("#calendar-tomorrow").flatpickr({
              x_input.domain([d3.min(newDataDatePath, function(d) { return +d.id; }), d3.max(newDataDatePath, function(d) { return +d.id; })])
              x.domain([d3.min(newDataDatePath, function(d) { return +d.id; }), d3.max(newDataDatePath, function(d) { return +d.id; })])
              x_dates.domain(d3.extent(newDataDatePath, function(d){return d.date;}))
+
+             console.log(d3.extent(newDataDatePath, function(d){return d.date;}))
 
 
              xAxis_dates_hours.scale(x_dates)
@@ -241,12 +209,37 @@ $("#calendar-tomorrow").flatpickr({
             // make sure path is drawn in full
             update_offset(1000, resize=true)
 
-            // update tick text for dates
-            svg.select('.x.axis_dates').call(xAxis_dates_noon)
-            svg_100.select(".x.axis_dates_main").call(xAxis_dates_days_main_divide)
 
-            // svg_Xdates_days_main
-            //   .call(xAxis_dates_days_main_divide)
+            // update tick text for dates
+            svg_Xdates_noon.call(xAxis_dates_noon)
+            svg_100.select(".x.axis_dates_main").call(xAxis_dates_days_main_divide).select(".domain").remove();;
+
+            // re-format tick text - slider dates
+            svg_Xdates_noon.selectAll('.tick text').each(function(_,i){
+              if(i%2==0){
+                d3.select(this).remove()
+              }
+            })
+
+            svg_Xdates_noon.selectAll('.tick text')
+                .style("text-transform", "uppercase")
+                .attr("fill","grey")
+                .attr("transform", "translate(0," + (-30) + ")")
+
+            // re-format tick text - days text
+            d3.select(".x.axis_dates_main").selectAll('.tick text')
+              .style("text-transform", "uppercase")
+              .attr("opacity", 0.5)
+              .attr("text-anchor", "start")
+              .attr("font-size", "18")
+              .attr('transform', 'translate(' + ((-width / 7) +10) + ',' + (height - 2) + ')rotate(-90)')
+
+            //  remove intial tick for presentation
+            d3.select('.x.axis_dates_main .tick line:first-child').remove()
+
+
+
+
 
         }
     })
@@ -1025,6 +1018,8 @@ d3.csv(file, prepare, function(data) {
   x_bar.domain(datanew.map(function(d) { return d.id; }))
     .padding(0.2);
 
+   console.log(d3.extent(datanew, function(d){return d.date;}))
+
 
   // drawPlot(dataset);
   draw_price_line(datanew);
@@ -1100,9 +1095,9 @@ d3.csv(file, prepare, function(data) {
     .select(".domain").remove();
 
 
+
   d3.select(".x.axis_dates_main").selectAll('.tick text')
       .style("text-transform", "uppercase")
-      .style("background", "red")
       .attr("opacity", 0.5)
       .attr("text-anchor", "start")
       .attr("font-size", "18")
@@ -1127,7 +1122,8 @@ d3.csv(file, prepare, function(data) {
       .attr('transform', 'translate(' + (width + 75) + ',' + ((height / 2) + 65) + ')rotate(-90)')
 
 
-
+  //  remove intial tick for presentation
+  d3.select('.x.axis_dates_main .tick line:first-child').remove()
 
 
   svg_Xdates.lower()
@@ -1445,12 +1441,17 @@ function soc_bar_update(h) {
     return d.id <= h;
   })
 
+  // added condition for zero
+  if (newData.length == 1) {
+      newData = []
+  }
+
 
   charg_dis_prices = newData.map(function(d) {return d.test_data * d.action })
   profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
   profit_label.text("Profit 💰:" + formatter.format(profit))
 
-  // console.log(newData)
+  console.log(newData)
   draw_bar_soc(newData, startDate = filter_date, endDate = end_date);
   draw_bar_act(newData, startDate = filter_date, endDate = end_date);
 
