@@ -54,7 +54,7 @@
     .track,
     .track-inset,
     .track-overlay {
-      stroke-linecap: round;
+      /*stroke-linecap: round;*/
     }
 
     .track {
@@ -109,6 +109,7 @@
 
   .group { 
     height: 50px;
+    width: 200px;
     position: relative;
     border: none; 
     top: 0%;
@@ -130,6 +131,10 @@
 
   }
 
+/*  .day_name_text .tick text {
+    rotate: 90;
+  }
+*/
 
 
   </style>
@@ -147,7 +152,7 @@
 </div>
 
 <div class="group">
-   Start Date: <input type="text" id="calendar-tomorrow" placeholder="2015-01-01 ⬇️">
+   Start Date ➡️ <input type="text" id="calendar-tomorrow" placeholder="2015-01-01">
  <label class="input-label"></label>
 </div>
 
@@ -156,6 +161,9 @@
 
 $("#calendar-tomorrow").flatpickr({
     mode: 'single',
+    maxDate: "2015-12-25",
+    minDate: "2015-1-1",
+    defaultDate: "2015-1-1",
     onChange: function(dates) {
 
             //  remove existing data
@@ -237,6 +245,11 @@ $("#calendar-tomorrow").flatpickr({
             //  remove intial tick for presentation
             d3.select('.x.axis_dates_main .tick line:first-child').remove()
 
+            // update profit text
+            charg_dis_prices = newDataDatePath.map(function(d) {return d.test_data * d.action })
+            profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
+            profit_label.text("Profit 💰:" + formatter.format(profit))
+
 
 
 
@@ -272,7 +285,7 @@ var viewBox = '0 0 ' + aspectRatio.split(':').join(' ');
 var svg = d3.select("#vis")
     .append("svg")
     .attr("width", width + margin.right + margin.left)
-    .attr("height", height - 225)  
+    .attr("height", height - 220)  
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
@@ -296,7 +309,12 @@ var x_input,y_input,
     x,
     filter_date, 
     end_date,
-    newDataDate
+    newDataDate,
+    profit_label,
+    svg_Xdates,
+    svg_Xdates_noon,
+    svg_Xdates_days,
+    svg_Xdates_days_main
 
 
 
@@ -1083,7 +1101,7 @@ d3.csv(file, prepare, function(data) {
 
 
   // svg_Xdates_noon.selectAll(".tick text").remove()
-  svg_Xdates_days_main = svg_100.append("g")
+  svg_Xdates_days_main = svg.append("g")
     .attr("class", "x axis_dates_main")
     .call(xAxis_dates_days_main_divide)
         .attr("fill", "none")
@@ -1099,9 +1117,12 @@ d3.csv(file, prepare, function(data) {
   d3.select(".x.axis_dates_main").selectAll('.tick text')
       .style("text-transform", "uppercase")
       .attr("opacity", 0.5)
-      .attr("text-anchor", "start")
-      .attr("font-size", "18")
-      .attr('transform', 'translate(' + ((-width / 7) +10) + ',' + (height - 2) + ')rotate(-90)')
+      .attr("text-anchor", "center")
+      .attr("font-size", "14")
+      .attr("transform", "translate(" + width/14 + "," + (-height+20) + ")")
+      // .attr("transform-origin", width/7)
+      // .attr("transform", "rotate(270)")
+      // .attr('transform', 'translate(' + ((-width / 7)) + ',' + (height - 2) + ')rotate(270)')
 
   // primary y-axis label
   svg_100.append("text")
@@ -1514,7 +1535,7 @@ var resize = function(e) {
 
   // update sub-path line chart /////////////////////////////////////////////////////////
   searchcolumn = d3.select(".container")
-                    .style("width", (output_graph_width)+ 'px')
+                    .style("width", (output_graph_width) + 'px')
 
 
   // update svg soc-bar chart /////////////////////////////////////////////////////////
@@ -1550,8 +1571,32 @@ var resize = function(e) {
 
   draw_bar_act(dataset)
 
+  // update tick lines on track
+  x_dates.range([0, output_graph_width])
 
+  xAxis_dates_hours.scale(x_dates)
+  xAxis_dates_noon.scale(x_dates)
+  xAxis_dates_days.scale(x_dates)
 
+  svg_Xdates.call(xAxis_dates_hours)
+  svg_Xdates_noon.call(xAxis_dates_noon)
+  svg_Xdates_days.call(xAxis_dates_days)
+
+  // update day name ticks
+
+  xAxis_dates_days_main_divide.scale(x_dates)
+
+  // svg_100.select('.x.axis_dates_main').selectAll('.tick text').remove()
+
+  svg_100.select('.x.axis_dates_main').call(xAxis_dates_days_main_divide)
+
+  svg_100.select(".x.axis_dates_main").selectAll('.tick text')
+  //     .style("text-transform", "uppercase")
+  //     .attr("opacity", 0.5)
+  //     .attr("text-anchor", "start")
+  //     .attr("font-size", "18")
+      .attr("transform-origin", output_graph_width/7)
+  //     .attr("transform", "rotate(270)")
 
 
 }
