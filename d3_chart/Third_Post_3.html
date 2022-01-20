@@ -184,7 +184,7 @@ $("#calendar-tomorrow").flatpickr({
             plot.selectAll(".location_2").remove()
 
             svg_Xdates_noon.selectAll(".tick").remove()
-            d3.select(".x.axis_dates_main").selectAll('.tick').remove()
+            // d3.select(".x.axis_dates_main").selectAll('.tick').remove()
 
 
             // update domains
@@ -220,7 +220,7 @@ $("#calendar-tomorrow").flatpickr({
 
             // update tick text for dates
             svg_Xdates_noon.call(xAxis_dates_noon)
-            svg_100.select(".x.axis_dates_main").call(xAxis_dates_days_main_divide).select(".domain").remove();;
+            svg.select(".x.axis_dates_main").call(xAxis_dates_days_main_divide).select(".domain").remove();;
 
             // re-format tick text - slider dates
             svg_Xdates_noon.selectAll('.tick text').each(function(_,i){
@@ -235,23 +235,22 @@ $("#calendar-tomorrow").flatpickr({
                 .attr("transform", "translate(0," + (-30) + ")")
 
             // re-format tick text - days text
-            d3.select(".x.axis_dates_main").selectAll('.tick text')
-              .style("text-transform", "uppercase")
-              .attr("opacity", 0.5)
-              .attr("text-anchor", "start")
-              .attr("font-size", "18")
-              .attr('transform', 'translate(' + ((-width / 7) +10) + ',' + (height - 2) + ')rotate(-90)')
+            svg.select(".x.axis_dates_main").selectAll('.tick text')
+                .style("text-transform", "uppercase")
+                .attr("opacity", 0.5)
+                .attr("text-anchor", "center")
+                .attr("font-size", "14")
+                .attr("transform", "translate(" + width/14 + "," + (-height+20) + ")")
+              // .attr('transform', 'translate(' + ((-width / 7) +10) + ',' + (height - 2) + ')rotate(-90)')
+
 
             //  remove intial tick for presentation
-            d3.select('.x.axis_dates_main .tick line:first-child').remove()
+            d3.select('.x.axis_dates_main_ticks .tick line:first-child').remove()
 
             // update profit text
             charg_dis_prices = newDataDatePath.map(function(d) {return d.test_data * d.action })
             profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
             profit_label.text("Profit 💰:" + formatter.format(profit))
-
-
-
 
 
         }
@@ -314,7 +313,8 @@ var x_input,y_input,
     svg_Xdates,
     svg_Xdates_noon,
     svg_Xdates_days,
-    svg_Xdates_days_main
+    svg_Xdates_days_main,
+    second_txt
 
 
 
@@ -463,7 +463,7 @@ xAxis_dates_days = d3.axisBottom().scale(x_dates).tickSizeOuter(0).tickFormat(d3
 
 xAxis_dates_days_main_divide = d3.axisBottom().scale(x_dates).tickSizeOuter(0).tickFormat(d3.timeFormat("%A")).ticks(d3.timeHour.every(24)).tickSize(height);
 
-
+xAxis_dates_days_main_divide_ticks = d3.axisBottom().scale(x_dates).tickSizeOuter(0).tickFormat(d3.timeFormat("%A")).ticks(d3.timeHour.every(24)).tickSize(height);
 
 
 
@@ -1107,6 +1107,18 @@ d3.csv(file, prepare, function(data) {
         .attr("fill", "none")
         .attr("shape-rendering", "crispEdges")
         .attr("stroke", "grey")
+        .attr("stroke-width", "0px")
+        .attr("opacity", 0.2)
+        // .style("stroke-dasharray", 4)
+    .select(".domain").remove();
+
+
+  svg_Xdates_days_ticks = svg_100.append("g")
+    .attr("class", "x axis_dates_main_ticks")
+    .call(xAxis_dates_days_main_divide_ticks)
+        .attr("fill", "none")
+        .attr("shape-rendering", "crispEdges")
+        .attr("stroke", "grey")
         .attr("stroke-width", "0.5px")
         .attr("opacity", 0.2)
         // .style("stroke-dasharray", 4)
@@ -1116,7 +1128,8 @@ d3.csv(file, prepare, function(data) {
 
   d3.select(".x.axis_dates_main").selectAll('.tick text')
       .style("text-transform", "uppercase")
-      .attr("opacity", 0.5)
+      .attr("opacity", 0.6)
+      .attr("fill", "#293241")
       .attr("text-anchor", "center")
       .attr("font-size", "14")
       .attr("transform", "translate(" + width/14 + "," + (-height+20) + ")")
@@ -1134,13 +1147,15 @@ d3.csv(file, prepare, function(data) {
       .attr('transform', 'translate(' + 0 + ',' + ((height / 2) + 25) + ')rotate(-90)')
 
   // primary x-axis label
-  svg_100.append("text")
+  second_txt = svg_100.append("text")
+      .attr("class", "secondary_yaxis")
       .attr("text-anchor", "start")
-      .attr("y", -margin.left+20)
-      .attr("x", -margin.top)
+      .attr("y",width + 45)
+      .attr("x", -height/1.25)
       .text("SoC & Normalised Action")
       .attr("fill","grey")
-      .attr('transform', 'translate(' + (width + 75) + ',' + ((height / 2) + 65) + ')rotate(-90)')
+      .attr('transform', 'rotate(-90)')
+      // .attr('transform', 'translate(' + (width + 75) + ',' + ((height / 2) + 65) + ')rotate(-90)')
 
 
   //  remove intial tick for presentation
@@ -1586,17 +1601,37 @@ var resize = function(e) {
 
   xAxis_dates_days_main_divide.scale(x_dates)
 
-  // svg_100.select('.x.axis_dates_main').selectAll('.tick text').remove()
+  // svg.select('.x.axis_dates_main').selectAll('.tick text').remove()
 
-  svg_100.select('.x.axis_dates_main').call(xAxis_dates_days_main_divide)
+  svg.select('.x.axis_dates_main').call(xAxis_dates_days_main_divide)
 
-  svg_100.select(".x.axis_dates_main").selectAll('.tick text')
-  //     .style("text-transform", "uppercase")
-  //     .attr("opacity", 0.5)
-  //     .attr("text-anchor", "start")
-  //     .attr("font-size", "18")
-      .attr("transform-origin", output_graph_width/7)
-  //     .attr("transform", "rotate(270)")
+  svg.select(".x.axis_dates_main").selectAll('.tick text')
+      .style("text-transform", "uppercase")
+      .attr("opacity", 0.5)
+      .attr("text-anchor", "center")
+      .attr("font-size", "14")
+      .attr("transform", "translate(" + output_graph_width/14 + "," + (-height+20) + ")")
+
+
+  profit_label.attr("transform", "translate(" + (output_graph_width - 165) + "," + (height - 5) + ")")
+
+
+  svg_100.select(".x.axis_dates_main_ticks").call(xAxis_dates_days_main_divide_ticks)
+
+  svg_100.selectAll("line.horizontalGrid")
+          .attr("x1", 0)
+          .attr("x2", output_graph_width)
+
+
+  // second_txt.remove()
+
+  second_txt
+      .attr("y",output_graph_width )
+      .attr("x", -height/1.25)
+
+  svg_100.select(".y.axis_soc")
+    .attr("transform", "translate(" + (output_graph_width) + "," + 0 + ")")
+  //   .select(".domain").remove();
 
 
 }
@@ -1605,7 +1640,6 @@ var resize = function(e) {
 function lineFiltered(data) {
   return line(data.filter(function (d) { return !!d }))
 }
-
 
 
 function update_offset(offset, resize=false) {
