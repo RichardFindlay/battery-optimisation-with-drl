@@ -1495,6 +1495,46 @@ function soc_bar_update(h) {
 
 
 
+// create legend
+var keys = ["SoC", "Action"]
+
+var color = ['#457b9d','#457b9d']
+
+var color = d3.scaleOrdinal()
+  .domain(keys)
+  .range(color);
+
+
+
+var size = 10
+svg_100.selectAll("mydots")
+  .data(keys)
+  .enter()
+  .append("rect")
+    .attr("x", function(d,i){ return ((width/2)-50) + i*(size+50)})
+    .attr("y", height-10) // 100 is where the first dot appears. 25 is the distance between dots
+    .attr("width", size)
+    .attr("height", size)
+    .attr("opacity", "0.6")
+    .style("fill", function(d){ return color(d)})
+
+
+
+
+svg_100.selectAll("mylabels")
+  .data(keys)
+  .enter()
+  .append("text")
+    .attr("x", function(d,i){ return ((width/2)-35) + i*(size+50)})
+    .attr("y", height-4) // 100 is where the first dot appears. 25 is the distance between dots
+    .style("fill", function(d){ return color(d)})
+    .text(function(d){ return d})
+    .attr("text-anchor", "left")
+    .style("alignment-baseline", "middle")
+
+
+
+
 
 // var ticks_1 = d3.select('#my_dataviz100').selectAll(".tick text");
 
