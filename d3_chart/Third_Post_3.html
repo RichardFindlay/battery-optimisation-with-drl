@@ -1498,7 +1498,7 @@ function soc_bar_update(h) {
 // create legend
 var keys = ["SoC", "Action"]
 
-var color = ['#457b9d','#457b9d']
+var color = ['#457b9d','#f79256']
 
 var color = d3.scaleOrdinal()
   .domain(keys)
@@ -1506,11 +1506,12 @@ var color = d3.scaleOrdinal()
 
 
 
-var size = 10
+var size = 6
 svg_100.selectAll("mydots")
   .data(keys)
   .enter()
   .append("rect")
+    .attr('class', 'legend_boxes')
     .attr("x", function(d,i){ return ((width/2)-50) + i*(size+50)})
     .attr("y", height-10) // 100 is where the first dot appears. 25 is the distance between dots
     .attr("width", size)
@@ -1525,11 +1526,13 @@ svg_100.selectAll("mylabels")
   .data(keys)
   .enter()
   .append("text")
+    .attr('class', 'legend_labels')
     .attr("x", function(d,i){ return ((width/2)-35) + i*(size+50)})
-    .attr("y", height-4) // 100 is where the first dot appears. 25 is the distance between dots
+    .attr("y", height-7) // 100 is where the first dot appears. 25 is the distance between dots
     .style("fill", function(d){ return color(d)})
     .text(function(d){ return d})
     .attr("text-anchor", "left")
+    .attr('font-size', 11)
     .style("alignment-baseline", "middle")
 
 
@@ -1671,7 +1674,11 @@ var resize = function(e) {
 
   svg_100.select(".y.axis_soc")
     .attr("transform", "translate(" + (output_graph_width) + "," + 0 + ")")
-  //   .select(".domain").remove();
+    .select(".domain").remove();
+
+
+    svg_100.selectAll(".legend_labels").attr("x", function(d,i){ return ((output_graph_width/2)-35) + i*(size+50)})
+    svg_100.selectAll(".legend_boxes").attr("x", function(d,i){ return ((output_graph_width/2)-50) + i*(size+50)})
 
 
 }
