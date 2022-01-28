@@ -175,7 +175,7 @@ $("#calendar-tomorrow").flatpickr({
             end_date.setDate(end_date.getDate() + 7);
 
 
-            var newDataDatePath = dataset.filter(function(d) {
+            newDataDatePath = dataset.filter(function(d) {
               return d.date >= filter_date && d.date < end_date;
             })
 
@@ -314,7 +314,8 @@ var x_input,y_input,
     svg_Xdates_noon,
     svg_Xdates_days,
     svg_Xdates_days_main,
-    second_txt
+    second_txt,
+    newDataDatePath
 
 
 
@@ -1679,6 +1680,9 @@ var resize = function(e) {
 
     svg_100.selectAll(".legend_labels").attr("x", function(d,i){ return ((output_graph_width/2)-35) + i*(size+50)})
     svg_100.selectAll(".legend_boxes").attr("x", function(d,i){ return ((output_graph_width/2)-50) + i*(size+50)})
+
+
+    // x_ref.domain([d3.min(newDataDatePath, function(d) { return +d.id; }), d3.max(newDataDatePath, function(d) { return +d.id; }) - 48])
 
 
 }
