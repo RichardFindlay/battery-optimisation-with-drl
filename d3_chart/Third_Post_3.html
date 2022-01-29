@@ -121,7 +121,7 @@
       /*font-size: 1.2em;*/
       padding: 0px 0px 0px 0px;
       /*display: block;*/
-      width: 90px;
+      width: 115px;
       height:  20px;
       border: none;
       border-bottom: 1px solid;
@@ -220,7 +220,7 @@ $("#calendar-tomorrow").flatpickr({
 
             // update tick text for dates
             svg_Xdates_noon.call(xAxis_dates_noon)
-            svg.select(".x.axis_dates_main").call(xAxis_dates_days_main_divide).select(".domain").remove();;
+            svg.select(".x.axis_dates_main").call(xAxis_dates_days_main_divide).select(".domain").remove();
 
             // re-format tick text - slider dates
             svg_Xdates_noon.selectAll('.tick text').each(function(_,i){
@@ -583,6 +583,15 @@ slider.append("line")
         })   
     )
     .on("click", function() {
+      currentValue = d3.mouse(this)[0]
+      update_offset(x_ref.invert(currentValue))
+      update(x_ref.invert(currentValue));
+      soc_bar_update(x_ref.invert(currentValue));
+      
+      info_line(currentValue);
+      mousemoved(currentValue);
+    })
+    .on("touchstart", function() {
       currentValue = d3.mouse(this)[0]
       update_offset(x_ref.invert(currentValue))
       update(x_ref.invert(currentValue));
@@ -1099,6 +1108,7 @@ d3.csv(file, prepare, function(data) {
       .style("text-transform", "uppercase")
       .attr("fill","grey")
       .attr("transform", "translate(0," + (-30) + ")")
+      .select(".domain").remove();
 
 
   // svg_Xdates_noon.selectAll(".tick text").remove()
@@ -1134,6 +1144,7 @@ d3.csv(file, prepare, function(data) {
       .attr("text-anchor", "center")
       .attr("font-size", "14")
       .attr("transform", "translate(" + width/14 + "," + (-height+20) + ")")
+      .select(".domain").remove();
       // .attr("transform-origin", width/7)
       // .attr("transform", "rotate(270)")
       // .attr('transform', 'translate(' + ((-width / 7)) + ',' + (height - 2) + ')rotate(270)')
@@ -1146,6 +1157,7 @@ d3.csv(file, prepare, function(data) {
       .text("Price (£/MW)")
       .attr("fill","grey")
       .attr('transform', 'translate(' + 0 + ',' + ((height / 2) + 25) + ')rotate(-90)')
+      .select(".domain").remove();
 
   // primary x-axis label
   second_txt = svg_100.append("text")
@@ -1156,6 +1168,7 @@ d3.csv(file, prepare, function(data) {
       .text("SoC & Normalised Action")
       .attr("fill","grey")
       .attr('transform', 'rotate(-90)')
+      .select(".domain").remove();
       // .attr('transform', 'translate(' + (width + 75) + ',' + ((height / 2) + 65) + ')rotate(-90)')
 
 
@@ -1568,6 +1581,11 @@ svg_100.selectAll("mylabels")
 // create function to handle 
 var resize = function(e) {
 
+  // x_ref.domain([d3.min(datanew, function(d) { return +d.id; }), d3.max(datanew, function(d) { return +d.id - 72; })])
+  // x_input.domain([d3.min(datanew, function(d) { return +d.id; }), d3.max(datanew, function(d) { return +d.id - 72; })])
+  // bar_data_repsonsive = datanew.slice(72)
+  // x_bar.domain(bar_data_repsonsive.map(function(d) { return +d.id; })).padding(0.2);
+
   // update svg line chart /////////////////////////////////////////////////////////
   width = parseInt(d3.select('#my_dataviz100').style('width'), 10)
 
@@ -1682,7 +1700,7 @@ var resize = function(e) {
     svg_100.selectAll(".legend_boxes").attr("x", function(d,i){ return ((output_graph_width/2)-50) + i*(size+50)})
 
 
-    // x_ref.domain([d3.min(newDataDatePath, function(d) { return +d.id; }), d3.max(newDataDatePath, function(d) { return +d.id; }) - 48])
+    
 
 
 }
