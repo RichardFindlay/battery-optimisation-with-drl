@@ -192,7 +192,7 @@ $("#calendar-tomorrow").flatpickr({
              x_ref.domain([d3.min(newDataDatePath, function(d) { return +d.id; }), d3.max(newDataDatePath, function(d) { return +d.id; })])
              x_input.domain([d3.min(newDataDatePath, function(d) { return +d.id; }), d3.max(newDataDatePath, function(d) { return +d.id; })])
              x.domain([d3.min(newDataDatePath, function(d) { return +d.id; }), d3.max(newDataDatePath, function(d) { return +d.id; })])
-             x_dates.domain(d3.extent(newDataDatePath, function(d){return d.date;}))
+             x_dates.domain(d3.extent(newDataDatePath, function(d){return d.date;}));
 
              console.log(d3.extent(newDataDatePath, function(d){return d.date;}))
 
@@ -208,6 +208,8 @@ $("#calendar-tomorrow").flatpickr({
 
             svg_100.select('.line').attr("d", input_line(newDataDatePath))
             svg_100.select('.subpath').attr("d", input_line(newDataDatePath))
+
+            svg.select(".domain").remove(); 
 
             // reset slider to zero
             handle.attr("cx", x(0))
@@ -1157,7 +1159,6 @@ d3.csv(file, prepare, function(data) {
       .text("Price (£/MW)")
       .attr("fill","grey")
       .attr('transform', 'translate(' + 0 + ',' + ((height / 2) + 25) + ')rotate(-90)')
-      .select(".domain").remove();
 
   // primary x-axis label
   second_txt = svg_100.append("text")
@@ -1168,7 +1169,6 @@ d3.csv(file, prepare, function(data) {
       .text("SoC & Normalised Action")
       .attr("fill","grey")
       .attr('transform', 'rotate(-90)')
-      .select(".domain").remove();
       // .attr('transform', 'translate(' + (width + 75) + ',' + ((height / 2) + 65) + ')rotate(-90)')
 
 
@@ -1628,7 +1628,8 @@ var resize = function(e) {
   plot.select(".x.axis_soc").call(xAxis_bar_soc)
   plot.select(".y.axis_soc").call(yAxis_bar_soc)
 
-  draw_bar_soc(dataset)
+
+  draw_bar_soc(dataset, startDate = filter_date, endDate = end_date)
 
   // update svg action-bar chart /////////////////////////////////////////////////////////
   d3.select("#button_div").attr("width", output_graph_width - 50)
@@ -1646,7 +1647,7 @@ var resize = function(e) {
   svg.select('.track-overlay').attr("x2", x.range()[1])
   svg.select('.track-inset').attr("x2", x.range()[1])
 
-  draw_bar_act(dataset)
+  draw_bar_act(dataset, startDate = filter_date, endDate = end_date)
 
   // update tick lines on track
   x_dates.range([0, output_graph_width])
