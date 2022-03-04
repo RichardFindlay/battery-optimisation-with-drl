@@ -763,6 +763,7 @@ function info_line(cur_pos=null) {
             .attr('y', 8)
             .style("opacity", "1")
 
+
           info_line_text2
             .text('Action: ' + parseFloat(bar_data[bar_data.length-1]['action']).toFixed(2) + " MW")
             .attr('x', pos.x + 5)
@@ -994,6 +995,8 @@ d3.csv(file, prepare, function(data) {
         // .style("stroke-dasharray", 4)
     .select(".domain").remove();
 
+  svg_100.select(".x.axis_dates_main_ticks").filter(function (d) { return d === 0; }).remove()
+
 
   if (current_width < 768) {
   d3.select(".x.axis_dates_main").selectAll('.tick text')
@@ -1023,6 +1026,7 @@ d3.csv(file, prepare, function(data) {
       .text("Price (£/MW)")
       .attr("fill","grey")
       .attr('transform', 'translate(' + 0 + ',' + ((height / 2) + 25) + ')rotate(-90)')
+      .style("font-size", "0.75em")
 
   // primary x-axis label
   second_txt = svg_100.append("text")
@@ -1033,6 +1037,7 @@ d3.csv(file, prepare, function(data) {
       .text("SoC & Normalised Action")
       .attr("fill","grey")
       .attr('transform', 'rotate(-90)')
+      .style("font-size", "0.75em")
       // .attr('transform', 'translate(' + (width + 75) + ',' + ((height / 2) + 65) + ')rotate(-90)')
 
 

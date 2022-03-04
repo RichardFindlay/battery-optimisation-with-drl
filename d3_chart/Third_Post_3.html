@@ -195,13 +195,14 @@
       color: white;
       padding: 0 10px;
       cursor: pointer;
-      height: 10px;
-      margin: 0 auto;
+      height: 5px;
+      margin: 0 0;
       position: absolute;
       right:  0;
-      padding: 0 12px;
-      height: 30px;
-      width: 100px;
+      /*padding: 0 12px;*/
+      height: 25px;
+      width: 90px;
+      font-size:  0.8em;
     
     }
 
@@ -257,14 +258,13 @@
     }
 
 
-
   .group { 
     height: 50px;
     width: 200px;
     position: relative;
     border: none; 
     top: 0%;
-    left: 4em;
+    left: 3.0em;
   }
 
   input {
@@ -272,11 +272,11 @@
       /*font-size: 1.2em;*/
       padding: 0px 0px 0px 0px;
       /*display: block;*/
-      width: 115px;
+      width: 80px;
       height:  20px;
       border: none;
       border-bottom: 1px solid;
-      font-size:  1em;
+      font-size:  0.75em;
       /*position:  absolute;*/
       text-align: center;
 
@@ -305,7 +305,7 @@
       <div class="card-body">
 
             <div>
-                <h1 class="title">Deep Reinforcement Learning for  Grid Scale Battery Optimisation</h1>
+                <h1 class="title">Deep Reinforcement Learning for Grid Scale Lithium-ion Battery Optimisation</h1>
                 <h2 class="sub-title">Using DQNs to automnously maximise battery profit </h2>
                 <hr style="border-width: 1px; color: #1d2021; margin-bottom: 0.3rem;">
                 <a style="float:right; font-size: 0.8rem; ">Feb 22, 2021</a>
@@ -321,13 +321,14 @@
 
             <div class="graph_container"; id="test" style="transform: translate(-50px, 0%);">
 
+                <div>
                 <div id="vis"></div>
                 <div id="my_dataviz100"></div>
-                <button id="play-button">Simulate ⚡</button>
-
+                <button id="play-button" style="transform:translate(45px,0)">Simulate ⚡</button>
+                </div>
 
                 <div class="group">
-                   Start Date ➡️ <input type="text" id="calendar-tomorrow" placeholder="2015-01-01">
+                 <div style="font-size: 0.75em"> Start Date ➡️  <input type="text" id="calendar-tomorrow" placeholder="2015-01-01" style="font-size:1em"></div>
                  <label class="input-label"></label>
                 </div>
 
@@ -344,6 +345,12 @@
 
 <script>
     var file = "{% static '/js/Post_3/circles.csv' %}"
+
+    // refresh window on resize window
+    window.onresize = function(event) {
+        document.location.reload(true);
+    }
+
 </script>
 
 
