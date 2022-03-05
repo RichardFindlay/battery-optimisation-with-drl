@@ -2,6 +2,10 @@
 function timeseries_graph(file) {
   console.log("ts graph loaded") }
 
+var filter_date = new Date(2015, 0, 1)
+var end_date = new Date(2015, 0, 8) 
+
+
 $("#calendar-tomorrow").flatpickr({
     mode: 'single',
     maxDate: "2015-12-25",
@@ -16,8 +20,8 @@ $("#calendar-tomorrow").flatpickr({
             filter_date = new Date(dates);
             end_date = new Date(dates)
 
-            if (current_width < 768) {
-              end_date.setDate(end_date.getDate() + 4);
+            if (current_width <= 625) {
+              end_date.setDate(end_date.getDate() + 3);
             } else {
               end_date.setDate(end_date.getDate() + 7);
             }
@@ -83,14 +87,25 @@ $("#calendar-tomorrow").flatpickr({
                 .attr("fill","grey")
                 .attr("transform", "translate(0," + (-30) + ")")
 
-            // re-format tick text - days text
-            svg.select(".x.axis_dates_main").selectAll('.tick text')
+            if (current_width <= 625) {
+            d3.select(".x.axis_dates_main").selectAll('.tick text')
                 .style("text-transform", "uppercase")
-                .attr("opacity", 0.5)
+                .attr("opacity", 0.6)
+                .attr("fill", "#293241")
                 .attr("text-anchor", "center")
                 .attr("font-size", "14")
-                .attr("transform", "translate(" + width/14 + "," + (-height+20) + ")")
-              // .attr('transform', 'translate(' + ((-width / 7) +10) + ',' + (height - 2) + ')rotate(-90)')
+                .attr("transform", "translate(" + current_width/8 + "," + (-height+20) + ")")
+                .select(".domain").remove();
+            } else {
+            d3.select(".x.axis_dates_main").selectAll('.tick text')
+                .style("text-transform", "uppercase")
+                .attr("opacity", 0.6)
+                .attr("fill", "#293241")
+                .attr("text-anchor", "center")
+                .attr("font-size", "14")
+                .attr("transform", "translate(" + current_width/14 + "," + (-height+20) + ")")
+                .select(".domain").remove();
+            }
 
 
             //  remove intial tick for presentation
@@ -117,10 +132,20 @@ var parseDate = d3.timeParse("%m/%d/%y");
 var startDate = new Date("2004-11-01"),
     endDate = new Date("2017-04-01");
 
-width = parseInt(d3.select('#test').style('width'), 10) 
+current_width = parseInt(d3.select('#test').style('width'), 10) 
+
+if (current_width <= 625) {
+  width = parseInt(d3.select('#test').style('width'), 10) - 85
+  var margin = {top:10, right:25, bottom:0, left:85}
+} else {
+  width = parseInt(d3.select('#test').style('width'), 10) 
+  var margin = {top:10, right:25, bottom:0, left:50}
+}
+
 const intial_width = width
 
-var margin = {top:10, right:25, bottom:0, left:50},
+
+// var margin = {top:10, right:25, bottom:0, left:50},
     // width = width - margin.left - margin.right + 75
     height = 275 - margin.top - margin.bottom;
 
@@ -164,7 +189,9 @@ var x_input,y_input,
     svg_Xdates_days,
     svg_Xdates_days_main,
     second_txt,
-    newDataDatePath
+    newDataDatePath,
+    second_txt,
+    sec_text
 
 
 
@@ -477,14 +504,21 @@ var handle = slider.insert("circle", ".track-overlay")
 //     .attr("font-size", "20")
 //     .attr("transform", "translate(0," + (-25) + ")")
 
-
+if (intial_width <= 625) {
 var profit_label = svg_100.append("g").append("text")  
     .attr("class", "profit_label")
-    .attr("font-size", "13")
+    .attr("font-size", "0.6em")
     // .text("Profit 💰: this is a test ")
     // .attr("transform", "translate(" + (width - 125)  + "," + (height + 20) + ")")
-    .attr("transform", "translate(" + (width - 111) + "," + (height - 5) + ")")
-
+    profit_label.attr("transform", "translate(" + ((width /2)-25) + "," + (0) + ")")
+} else {
+var profit_label = svg_100.append("g").append("text")  
+    .attr("class", "profit_label")
+    .attr("font-size", "0.7em")
+    // .text("Profit 💰: this is a test ")
+    // .attr("transform", "translate(" + (width - 125)  + "," + (height + 20) + ")")
+    .attr("transform", "translate(" + (width - 100) + "," + (height - 5) + ")")
+}
 
 var info_line_text = svg_100.append("g").append("text")  
     .attr("class", "info_line_text")
@@ -572,6 +606,8 @@ function getSum(total, num) {
 
 // reload data
 function reload_data() {
+
+
 d3.csv(file, prepare, function(data) {
   //  reload and filter for specified date range
 
@@ -876,10 +912,10 @@ d3.csv(file, prepare, function(data) {
 
   current_width = parseInt(d3.select('#test').style('width'), 10) 
 
-  if (current_width < 768) {
-    datefil = new Date(2015, 0, 5)
-    x.domain([0, 96])
-    x_ref.domain([0, 96])
+  if (current_width <= 625) {
+    datefil = new Date(2015, 0, 4)
+    x.domain([0, 72])
+    x_ref.domain([0, 72])
   } else {
     datefil = new Date(2015, 0, 8)
     x.domain([0, 168])
@@ -895,7 +931,7 @@ d3.csv(file, prepare, function(data) {
   dataset = data;
   dataset_update = datanew;
 
-  console.log(datanew)
+  console.log(dataset)
 
 
   // console.log(dataset)
@@ -918,17 +954,21 @@ d3.csv(file, prepare, function(data) {
   profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
   profit_label.text("Profit 💰:" + formatter.format(profit))
 
+  start_date = new Date(2015, 0, 1)
+  newDataDatePath_int = dataset.filter(function(d) {
+  return d.date >= start_date && d.date < datefil;
+  })
 
 
   // instantiate line graph plot
   var path = svg_100.append("path")
-    .datum(datanew)
+    .datum(dataset)
     .attr("class", "line")
     .attr("fill", "none")
     .attr("opacity", 0.8)
-    .attr("stroke", "#293241")
+    .attr("stroke", "#444444")
     .attr("stroke-width", 1.75)
-    .attr("d", input_line(datanew))
+    .attr("d", input_line(newDataDatePath_int))
     // .on("mousemove", mousemoved);
 
   var length = path.node().getTotalLength();
@@ -947,13 +987,13 @@ d3.csv(file, prepare, function(data) {
     .attr("class", "x axis_dates")
     .attr("transform", "translate(0," + 10 + ")")
     .call(xAxis_dates_noon)
+
   
 
   svg_Xdates_days = svg.append("g")
     .attr("class", "x axis_dates")
     .attr("transform", "translate(0," + 10 + ")")
     .call(xAxis_dates_days)
-
 
  
 
@@ -966,7 +1006,7 @@ d3.csv(file, prepare, function(data) {
 
   svg_Xdates_noon.selectAll('.tick text')
       .style("text-transform", "uppercase")
-      .attr("fill","grey")
+      .attr("fill","#BEBEBE")
       .attr("transform", "translate(0," + (-30) + ")")
       .select(".domain").remove();
 
@@ -984,21 +1024,21 @@ d3.csv(file, prepare, function(data) {
     .select(".domain").remove();
 
 
-  svg_Xdates_days_ticks = svg_100.append("g")
-    .attr("class", "x axis_dates_main_ticks")
-    .call(xAxis_dates_days_main_divide_ticks)
-        .attr("fill", "none")
-        .attr("shape-rendering", "crispEdges")
-        .attr("stroke", "grey")
-        .attr("stroke-width", "0.5px")
-        .attr("opacity", 0.2)
-        // .style("stroke-dasharray", 4)
-    .select(".domain").remove();
+  // svg_Xdates_days_ticks = svg_100.append("g")
+  //   .attr("class", "x axis_dates_main_ticks")
+  //   .call(xAxis_dates_days_main_divide_ticks)
+  //       .attr("fill", "none")
+  //       .attr("shape-rendering", "crispEdges")
+  //       .attr("stroke", "grey")
+  //       .attr("stroke-width", "0.5px")
+  //       .attr("opacity", 0.2)
+  //       // .style("stroke-dasharray", 4)
+  //   .select(".domain").remove();
 
-  svg_100.select(".x.axis_dates_main_ticks").filter(function (d) { return d === 0; }).remove()
+  // svg_Xdates_days_ticks.filter(function (d) { return d === 0; }).remove()
 
 
-  if (current_width < 768) {
+  if (current_width <= 625) {
   d3.select(".x.axis_dates_main").selectAll('.tick text')
       .style("text-transform", "uppercase")
       .attr("opacity", 0.6)
@@ -1019,6 +1059,16 @@ d3.csv(file, prepare, function(data) {
   }
 
   // primary y-axis label
+  if (current_width <= 625) {
+  svg_100.append("text")
+      .attr("text-anchor", "start")
+      .attr("y", -30)
+      .attr("x", -margin.top)
+      .text("Price (£/MW)")
+      .attr("fill","grey")
+      .attr('transform', 'translate(' + 0 + ',' + ((height / 2) + 25) + ')rotate(-90)')
+      .style("font-size", "0.75em")
+  } else {
   svg_100.append("text")
       .attr("text-anchor", "start")
       .attr("y", -margin.left+20)
@@ -1027,13 +1077,14 @@ d3.csv(file, prepare, function(data) {
       .attr("fill","grey")
       .attr('transform', 'translate(' + 0 + ',' + ((height / 2) + 25) + ')rotate(-90)')
       .style("font-size", "0.75em")
+  }
 
   // primary x-axis label
-  second_txt = svg_100.append("text")
+  sec_text = svg_100.append("text")
       .attr("class", "secondary_yaxis")
       .attr("text-anchor", "start")
       .attr("y",width + 45)
-      .attr("x", -height/1.25)
+      .attr("x", -height/1.35)
       .text("SoC & Normalised Action")
       .attr("fill","grey")
       .attr('transform', 'rotate(-90)')
@@ -1216,7 +1267,7 @@ svg_input_Yaxis = svg_100.append("g")
 function draw_price_line(data) {
 
   // INPUT GRAPH
-  x_input.domain([0, d3.max(data, function(d) { return +d.id; })])
+  x_input.domain([0, d3.max(data, function(d) { return +d.id ; })])
   y_input.domain([0, d3.max(data, function(d) { return +d.test_data; })])
 
   // svg_100.selectAll(".line").remove();
@@ -1379,9 +1430,9 @@ function soc_bar_update(h) {
 
 
 // create legend
-var keys = ["SoC", "Action"]
+var keys = ["SoC", "Action", "Price"]
 
-var color = ['#457b9d','#f79256']
+var color = ['#457b9d','#f79256', "#444444"]
 
 var color = d3.scaleOrdinal()
   .domain(keys)
@@ -1395,28 +1446,58 @@ svg_100.selectAll("mydots")
   .enter()
   .append("rect")
     .attr('class', 'legend_boxes')
-    .attr("x", function(d,i){ return ((width/2)-50) + i*(size+50)})
-    .attr("y", height-10) // 100 is where the first dot appears. 25 is the distance between dots
-    .attr("width", size)
-    .attr("height", size)
+    .attr("x", function(d,i){ return ((width/2)-55) + i*(size+50)})
+    .attr("y",  function(d, i){ if (i==2) {
+      return height -9 } else {
+    return height -10}})
+    .attr("width",  function(d, i){ if (i==2) {
+      return size +3 } else {
+    return size}})
+    .attr("height",  function(d, i){ if (i==2) {
+      return size -3 } else {
+    return size}})
     .attr("opacity", "0.6")
     .style("fill", function(d){ return color(d)})
 
 
 
-
-svg_100.selectAll("mylabels")
+leg_labels = svg_100.selectAll("mylabels")
   .data(keys)
   .enter()
   .append("text")
     .attr('class', 'legend_labels')
-    .attr("x", function(d,i){ return ((width/2)-35) + i*(size+50)})
-    .attr("y", height-7) // 100 is where the first dot appears. 25 is the distance between dots
+    .attr("x", function(d,i){ return ((width/2)-45) + i*(size+50)})
+    .attr("y", height-6.5)
     .style("fill", function(d){ return color(d)})
     .text(function(d){ return d})
     .attr("text-anchor", "left")
-    .attr('font-size', 11)
+    .attr('font-size', 10)
     .style("alignment-baseline", "middle")
+
+
+
+
+
+// if (current_width < 768) {
+//   svg_100.select("mydots").attr("y",  
+//     function(d, i){ 
+//       if (i==2) {
+//       return  -10
+//     } else {
+//       return  -100}
+//     })
+//   svg_100.select("mylabels").attr("y", -6.5)  
+// } else {
+//   svg_100.select("mydots").attr("y",  
+//     function(d, i){ 
+//       if (i==2) {
+//       return  height-9 
+//     } else {
+//       return  height-10}
+//     })
+//  svg_100.select("mylabels").attr("y", height-6.5)  
+// }
+
 
 
 
@@ -1451,15 +1532,36 @@ svg_100.selectAll("mylabels")
 var resize = function(e) {
 
 
+
   // x_ref.domain([d3.min(datanew, function(d) { return +d.id; }), d3.max(datanew, function(d) { return +d.id - 72; })])
   // x_input.domain([d3.min(datanew, function(d) { return +d.id; }), d3.max(datanew, function(d) { return +d.id - 72; })])
   // bar_data_repsonsive = datanew.slice(72)
   // x_bar.domain(bar_data_repsonsive.map(function(d) { return +d.id; })).padding(0.2);
 
   // update svg line chart /////////////////////////////////////////////////////////
-  width = parseInt(d3.select('#test').style('width'), 10) 
-  width = width + 75
+start_date = filter_date
+
+
+if (current_width <= 625) {
+  end_date.setDate(start_date.getDate() + 3);
+} else {
+  end_date.setDate(start_date.getDate() + 7);
+}
+
+if (current_width <= 625) {
+  width = parseInt(d3.select('#test').style('width'), 10) + 25
+  var margin = {top:10, right:25, bottom:0, left:85}
+} else {
+  width = parseInt(d3.select('#test').style('width'), 10) + 75
+  var margin = {top:10, right:25, bottom:0, left:50}
+}
+  // width = width 
   // width = width + margin.right + margin.left 
+
+
+  newDataDatePath_int = dataset.filter(function(d) {
+  return d.date >= start_date && d.date < end_date;
+  })
 
 
 
@@ -1468,7 +1570,7 @@ var resize = function(e) {
   // buffer = dimensions[1]
   output_graph_width = width - margin.left - margin.right
 
-  d3.select("#my_dataviz100").select("svg").attr("width", width)
+  d3.select("#my_dataviz100").select("svg").attr("width", width+50)
   svg_100.attr("width", width)
   x_input.range([0, output_graph_width]);
   y_input.range([height, 0]);
@@ -1478,9 +1580,10 @@ var resize = function(e) {
 
   svg_input_Xaxis.call(xAxis)
   // svg_input_Yaxis.call(yAxis)
+  console.log(newDataDatePath_int)
 
   svg_100.select(".x.axis").call(xAxis)
-  svg_100.select('.line').attr("d", input_line(dataset))
+  svg_100.select('.line').attr("d", input_line(newDataDatePath_int))
 
   update_offset(1000, resize=true)
 
@@ -1503,7 +1606,7 @@ var resize = function(e) {
   plot.select(".y.axis_soc").call(yAxis_bar_soc)
 
 
-  draw_bar_soc(dataset, startDate = filter_date, endDate = end_date)
+  draw_bar_soc(newDataDatePath_int, startDate = filter_date, endDate = end_date)
 
   // update svg action-bar chart /////////////////////////////////////////////////////////
   d3.select("#button_div").attr("width", output_graph_width - 50)
@@ -1521,7 +1624,7 @@ var resize = function(e) {
   svg.select('.track-overlay').attr("x2", x.range()[1])
   svg.select('.track-inset').attr("x2", x.range()[1])
 
-  draw_bar_act(dataset, startDate = filter_date, endDate = end_date)
+  draw_bar_act(newDataDatePath_int, startDate = filter_date, endDate = end_date)
 
   // update tick lines on track
   x_dates.range([0, output_graph_width])
@@ -1542,7 +1645,7 @@ var resize = function(e) {
 
   svg.select('.x.axis_dates_main').call(xAxis_dates_days_main_divide)
 
-  if (intial_width < 768) {
+  if (intial_width <= 625) {
   d3.select(".x.axis_dates_main").selectAll('.tick text')
       .style("text-transform", "uppercase")
       .attr("opacity", 0.6)
@@ -1563,8 +1666,32 @@ var resize = function(e) {
   }
 
 
-  profit_label.attr("transform", "translate(" + (output_graph_width - 165) + "," + (height - 5) + ")")
+if (intial_width <= 625) {
+  d3.select(".secondary_yaxis").attr("x", -(height/2) - 65).attr("y", output_graph_width+40) 
+} else {
+  d3.select(".secondary_yaxis").attr("x", -(height/2) - 65).attr("y", width-30) 
+}
 
+
+// .attr("y",width + 45)
+// .attr("x", -height/1.35)
+
+
+// svg_100.append("text")
+//       .attr("class", "secondary_yaxis")
+//       .attr("text-anchor", "start")
+//       .attr("y",(height / 2) + 5)
+//       .attr("x", width-100)
+//       .text("SoC & Normalised Action")
+//       .attr("fill","grey")
+//       // .attr('transform', 'rotate(-90)')
+//       .style("font-size", "0.75em")
+
+  if (current_width <= 625) {
+    profit_label.attr("transform", "translate(" + ((output_graph_width /2)-25) + "," + (0) + ")")
+  } else {
+    profit_label.attr("transform", "translate(" + (output_graph_width - 100) + "," + (height - 5) + ")")
+  }
 
   svg_100.select(".x.axis_dates_main_ticks").call(xAxis_dates_days_main_divide_ticks)
 
@@ -1575,9 +1702,9 @@ var resize = function(e) {
 
   // second_txt.remove()
 
-  second_txt
-      .attr("y",output_graph_width )
-      .attr("x", -height/1.25)
+  // second_txt
+  //     .attr("y",output_graph_width )
+  //     .attr("x", -height/1.25)
 
   svg_100.select(".y.axis_soc")
     .attr("transform", "translate(" + (output_graph_width) + "," + 0 + ")")
@@ -1586,10 +1713,6 @@ var resize = function(e) {
 
     svg_100.selectAll(".legend_labels").attr("x", function(d,i){ return ((output_graph_width/2)-35) + i*(size+50)})
     svg_100.selectAll(".legend_boxes").attr("x", function(d,i){ return ((output_graph_width/2)-50) + i*(size+50)})
-
-
-    
-
 
 }
 
