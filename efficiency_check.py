@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
+from scipy import interpolate
 
 battery_parameters = {
 	'a_0': -0.852, 'a_1': 63.867, 'a_2': 3.6297, 'a_3': 0.559, 'a_4': 0.51, 'a_5': 0.508,
@@ -55,14 +56,15 @@ def calc_efficiency(v_oc, r_tot, icur, p_r):
 
 
 
-soc_all = np.linspace(0,1,11)
-p_r_all = np.linspace(0,-100000,11)
+soc_all = np.linspace(0,1,220)
+p_r_all = np.linspace(0,100000,22)
 
 v_oc_tot = np.empty((len(soc_all),len(p_r_all)))  
 r_tot_tot = np.empty((len(soc_all),len(p_r_all)))    
-icur_tot = np.empty((len(soc_all),len(p_r_all)))    
-efficiency_tot = np.empty((len(soc_all),len(p_r_all)))    
-
+icur_tot_dis = np.empty((len(soc_all),len(p_r_all))) 
+icur_tot_charge = np.empty((len(soc_all),len(p_r_all)))     
+efficiency_tot_discharge = np.empty((len(soc_all),len(p_r_all)))    
+efficiency_tot_charge = np.empty((len(soc_all),len(p_r_all)))    
 
 plot_soc = np.empty((len(soc_all),len(p_r_all)))
 plot_p_r = np.empty((len(soc_all),len(p_r_all))) 
@@ -79,38 +81,38 @@ for idx, soc in enumerate(soc_all):
 
 		v_oc_tot[idx, idx2], r_tot_tot[idx, idx2] = ss_circuit_model(soc, battery_parameters)
 
-		icur_tot[idx, idx2] = circuit_current(v_oc_tot[idx, idx2], r_tot_tot[idx, idx2], p_r)
+		icur_tot_dis[idx, idx2] = circuit_current(v_oc_tot[idx, idx2], r_tot_tot[idx, idx2], p_r)
+		icur_tot_charge[idx, idx2] = circuit_current(v_oc_tot[idx, idx2], r_tot_tot[idx, idx2], p_r*-1)
 
-		efficiency_tot[idx, idx2] = calc_efficiency(v_oc_tot[idx, idx2], r_tot_tot[idx, idx2], icur_tot[idx, idx2], p_r)
-
-
-print(efficiency_tot)
-print(efficiency_tot[0,10])
-# efficiency_tot[0,10] = 2.0
-# X, Y = np.meshgrid(soc_all, p_r_all)
+		efficiency_tot_discharge[idx, idx2] = calc_efficiency(v_oc_tot[idx, idx2], r_tot_tot[idx, idx2], icur_tot_dis[idx, idx2], p_r)
+		efficiency_tot_charge[idx, idx2] = calc_efficiency(v_oc_tot[idx, idx2], r_tot_tot[idx, idx2], icur_tot_charge[idx, idx2], p_r*-1)
 
 
+print(efficiency_tot_discharge)
+print(efficiency_tot_discharge[0,10])
 
 
+# cap results for plot
+efficiency_tot_discharge = np.clip(efficiency_tot_discharge, 1, 1.06)
+efficiency_tot_charge = np.clip(efficiency_tot_charge, 0.95, 1.0)
 
-# print(X)
-# print(Y)
-
-
-fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+fig, (ax1, ax2) = plt.subplots(1,2, subplot_kw={"projection": "3d"})
 
 # Plot the surface.
-surf = ax.plot_surface(plot_soc, plot_p_r, efficiency_tot, cmap=cm.coolwarm,
+discharge_surf = ax1.plot_surface(plot_soc, plot_p_r, efficiency_tot_discharge, cmap='viridis',
+                       linewidth=0, antialiased=False)
+
+charge_surf = ax2.plot_surface(plot_soc, plot_p_r*-1, efficiency_tot_charge, cmap='viridis',
                        linewidth=0, antialiased=False)
 
 
-ax.set_xlabel('soc')
-ax.set_ylabel('p_r')
-ax.set_zlabel('efficiency');
-ax.set_zlim([0.95,1.0])
+
+ax1.set_xlabel('soc')
+ax1.set_ylabel('p_r')
+ax1.set_zlabel('efficiency');
+ax1.set_zlim([1.0,1.06])
 # ax.set_zlim([1.0,1.06])
 plt.show()
 
 
 
-exit()
