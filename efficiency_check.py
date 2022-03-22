@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from scipy import interpolate
+from matplotlib.ticker import FormatStrFormatter
 
 battery_parameters = {
 	'a_0': -0.852, 'a_1': 63.867, 'a_2': 3.6297, 'a_3': 0.559, 'a_4': 0.51, 'a_5': 0.508,
@@ -96,22 +97,60 @@ print(efficiency_tot_discharge[0,10])
 efficiency_tot_discharge = np.clip(efficiency_tot_discharge, 1, 1.06)
 efficiency_tot_charge = np.clip(efficiency_tot_charge, 0.95, 1.0)
 
-fig, (ax1, ax2) = plt.subplots(1,2, subplot_kw={"projection": "3d"})
+fig, (ax1, ax2) = plt.subplots(1,2, subplot_kw={"projection": "3d"}, figsize=(11.2,5))
 
 # Plot the surface.
-discharge_surf = ax1.plot_surface(plot_soc, plot_p_r, efficiency_tot_discharge, cmap='viridis',
-                       linewidth=0, antialiased=False)
+discharge_surf = ax1.plot_surface(plot_soc, (plot_p_r)/1000, efficiency_tot_discharge, cmap='viridis',
+                       linewidth=0, edgecolor='none', antialiased=True, alpha=0.97)
 
-charge_surf = ax2.plot_surface(plot_soc, plot_p_r*-1, efficiency_tot_charge, cmap='viridis',
-                       linewidth=0, antialiased=False)
+# format discharge plot persective
+ax1.azim = -45
+ax1.dist = 10
+ax1.elev = 15
+
+ax1.set_title('Discharge', fontsize=8.5, x=0.5, y=0.95)
+ax1.set_xlabel('SoC', fontsize=8)
+ax1.set_ylabel('Power (MW)', fontsize=8)
+ax1.set_zlabel('Efficiency', fontsize=8)
+ax1.set_zlim([1.0, 1.06])
+ax1.set_zticks(np.linspace(1, 1.06, 5))
+ax1.zaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+
+
+charge_surf = ax2.plot_surface(plot_soc, (plot_p_r*-1)/1000, efficiency_tot_charge, cmap='viridis',
+                       linewidth=0, edgecolor='none', antialiased=True, alpha=0.97)
+
+# format discharge plot persective
+ax2.azim = -135
+ax2.dist = 10
+ax2.elev = 15
+
+ax2.set_title('Charge', fontsize=8.5, x=0.5, y=0.95)
+ax2.set_xlabel('SoC', fontsize=8)
+ax2.set_ylabel('Power (MW)', fontsize=8)
+ax2.set_zticks(np.linspace(0.95, 1, 5))
+ax2.zaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+# ax2.set_zlabel('Efficiency', fontsize=8)
+
+ax1.tick_params(axis='both', which='major', labelsize=6.5)
+ax2.tick_params(axis='both', which='major', labelsize=6.5)
+
+
+ax1.yaxis._axinfo["grid"]['linewidth'] = 0.2
+ax1.xaxis._axinfo["grid"]['linewidth'] = 0.2
+ax1.zaxis._axinfo["grid"]['linewidth'] = 0.2
+
+ax2.yaxis._axinfo["grid"]['linewidth'] = 0.2
+ax2.xaxis._axinfo["grid"]['linewidth'] = 0.2
+ax2.zaxis._axinfo["grid"]['linewidth'] = 0.2
+
+
+# ax2.axes.set_xlim3d(left=0.2, right=9.8) 
+# ax2.axes.set_ylim3d(bottom=0.2, top=9.8) 
+# ax2.axes.set_zlim3d(bottom=0.95, top=0.96) 
 
 
 
-ax1.set_xlabel('soc')
-ax1.set_ylabel('p_r')
-ax1.set_zlabel('efficiency');
-ax1.set_zlim([1.0,1.06])
-# ax.set_zlim([1.0,1.06])
 plt.show()
 
 
