@@ -97,11 +97,11 @@ print(efficiency_tot_discharge[0,10])
 efficiency_tot_discharge = np.clip(efficiency_tot_discharge, 1, 1.06)
 efficiency_tot_charge = np.clip(efficiency_tot_charge, 0.95, 1.0)
 
-fig, (ax1, ax2) = plt.subplots(1,2, subplot_kw={"projection": "3d"}, figsize=(11.2,5))
+fig, (ax1, ax2) = plt.subplots(1,2, subplot_kw={"projection": "3d"}, figsize=(10,4))
 
 # Plot the surface.
 discharge_surf = ax1.plot_surface(plot_soc, (plot_p_r)/1000, efficiency_tot_discharge, cmap='viridis',
-                       linewidth=0, edgecolor='none', antialiased=True, alpha=0.97)
+                       linewidth=0, edgecolor='none', antialiased=True, alpha=0.75)
 
 # format discharge plot persective
 ax1.azim = -45
@@ -111,14 +111,14 @@ ax1.elev = 15
 ax1.set_title('Discharge', fontsize=8.5, x=0.5, y=0.95)
 ax1.set_xlabel('SoC', fontsize=8)
 ax1.set_ylabel('Power (MW)', fontsize=8)
-ax1.set_zlabel('Efficiency', fontsize=8)
+ax1.set_zlabel('Efficiency', fontsize=8, labelpad=7.5)
 ax1.set_zlim([1.0, 1.06])
 ax1.set_zticks(np.linspace(1, 1.06, 5))
 ax1.zaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
 
 charge_surf = ax2.plot_surface(plot_soc, (plot_p_r*-1)/1000, efficiency_tot_charge, cmap='viridis',
-                       linewidth=0, edgecolor='none', antialiased=True, alpha=0.97)
+                       linewidth=0, edgecolor='none', antialiased=True, alpha=0.75)
 
 # format discharge plot persective
 ax2.azim = -135
@@ -145,13 +145,15 @@ ax2.xaxis._axinfo["grid"]['linewidth'] = 0.2
 ax2.zaxis._axinfo["grid"]['linewidth'] = 0.2
 
 
-# ax2.axes.set_xlim3d(left=0.2, right=9.8) 
-# ax2.axes.set_ylim3d(bottom=0.2, top=9.8) 
-# ax2.axes.set_zlim3d(bottom=0.95, top=0.96) 
+# ax2.axes.set_xlim3d(left=0.02, right=0.98) 
+# ax2.axes.set_ylim3d(bottom=-99.8, top=-0.2) 
+# ax2.axes.set_zlim3d(bottom=0.952, top=0.99999999) 
 
 
-
-plt.show()
+plt.tight_layout()
+# plt.show()
+plt.draw()
+plt.savefig('filename.png', dpi=2400, bbox_inches='tight', transparent=True)
 
 
 
