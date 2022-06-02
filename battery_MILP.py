@@ -12,23 +12,24 @@ class BatteryMILP():
 		self.df = optimise_df
 
 		# decalre some params used in calculation of effiency
-		self._params = { # (Kim & Qiao, 2011) : https://digitalcommons.unl.edu/cgi/viewcontent.cgi?article=1210&context=electricalengineeringfacpub
-			'a_0': -0.852, 'a_1': 63.867, 'a_2': 3.6297, 'a_3': 0.559, 'a_4': 0.51, 'a_5': 0.508,
-			'b_0': 0.1463, 'b_1': 30.27, 'b_2': 0.1037, 'b_3': 0.0584, 'b_4': 0.1747, 'b_5': 0.1288,
-			'c_0': 0.1063, 'c_1': 62.94, 'c_2': 0.0437, 'd_0': -200, 'd_1': -138, 'd_2': 300,
-			'e_0': 0.0712, 'e_1': 61.4, 'e_2': 0.0288, 'f_0': -3083, 'f_1': 180, 'f_2': 5088,
-			'y1_0': 2863.3, 'y2_0': 232.66, 'c': 0.9248, 'k': 0.0008
-			}
-		self._ref_volts = 3.6
+
 
 	def optimise(self, power, capacity):
 
 		"""
 		optimise_df : pandas dataframe containing the hourly price with date range as index
 		"""
+		_params = { # (Kim & Qiao, 2011) : https://digitalcommons.unl.edu/cgi/viewcontent.cgi?article=1210&context=electricalengineeringfacpub
+			'a_0': -0.852, 'a_1': 63.867, 'a_2': 3.6297, 'a_3': 0.559, 'a_4': 0.51, 'a_5': 0.508,
+			'b_0': 0.1463, 'b_1': 30.27, 'b_2': 0.1037, 'b_3': 0.0584, 'b_4': 0.1747, 'b_5': 0.1288,
+			'c_0': 0.1063, 'c_1': 62.94, 'c_2': 0.0437, 'd_0': -200, 'd_1': -138, 'd_2': 300,
+			'e_0': 0.0712, 'e_1': 61.4, 'e_2': 0.0288, 'f_0': -3083, 'f_1': 180, 'f_2': 5088,
+			'y1_0': 2863.3, 'y2_0': 232.66, 'c': 0.9248, 'k': 0.0008
+			}
+		_ref_volts = 3.6
 
 		# calculate number of cells for capactiy 
-		self._cellnum = int(np.ceil(capacity/ self._ref_volts))
+		_cellnum = int(np.ceil(capacity/ self._ref_volts))
 
 		# price dictionary
 		prices = dict(enumerate(self.df.price.tolist()))
@@ -59,7 +60,24 @@ class BatteryMILP():
 		# store profit on timeseries resolution
 		model.profit_timeseries = Var(model.T, within=Reals, initialize=0)
 
-		# define efficiency
+		# declare Voc and Rtot
+		model.voc = Var(model.T, within=Reals, initialize=0)
+		model.rtot = Var(model.T, within=Reals, initialize=0)
+
+
+
+		# calculate efficenecy - first calualte Voc & R_tot
+		def ss_circuit_model(model, t):
+			v_oc == ((_params['a_0'] * np.exp(-_params['a_1'] * model.soc[t])) + _params['a_2'] + (_params['a_3'] * model.soc[t]) - (_params['a_4'] * model.soc[t]**2) + (_params['a_5'] * model.soc[t]**3)) * _cellnum
+			r_s = ((_params['b_0'] * np.exp(-_params['b_1'] * model.soc[t])) + _params['b_2'] + (_params['b_3'] * model.soc[t]) - (_params['b_4'] * model.soc[t]**2) + (_params['b_5'] * model.soc[t]**3)) * _cellnum
+			r_st = (_params['c_0'] * np.exp(-_params['c_1'] * model.soc[t]) + _params['c_2']) * _cellnum
+			r_tl = (_params['e_0'] * np.exp(-_params['e_1'] * model.soc[t]) + _params['e_2']) * _cellnum
+			r_tot == (r_s + r_st + r_tl)
+			return v_oc, r_tot	
+
+		model.voc_rtot = Constraint(model.T, rule=ss_circuit_model)
+
+
 		efficiency = 0.85
 
 
