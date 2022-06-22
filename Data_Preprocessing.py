@@ -7,9 +7,8 @@ from pickle import dump
 
 
 
-
 # create train and test set data
-n2ex_da = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices.csv', header=0)
+n2ex_da = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2018_2019.csv', header=0)
 
 
 # convert series to datetime
@@ -19,22 +18,22 @@ n2ex_da['Datetime_CET'] = pd.to_datetime(n2ex_da['Datetime_CET'])
 n2ex_da.set_index(n2ex_da['Datetime_CET'], inplace=True)
 
 # remove outliers IQR Method
-q15 = n2ex_da.quantile(0.15).values
-q85 = n2ex_da.quantile(0.85).values
-iqr = q85 - q15
-cut_off = 1.5 * iqr
-lower = float(q15 - cut_off)
-upper = float(q85 + cut_off)
+# q15 = n2ex_da.quantile(0.15).values
+# q85 = n2ex_da.quantile(0.85).values
+# iqr = q85 - q15
+# cut_off = 1.5 * iqr
+# lower = float(q15 - cut_off)
+# upper = float(q85 + cut_off)
 
 # applying clipping
-n2ex_da['Price_(£)'].clip(lower=lower, upper=upper, inplace=True) 
+# n2ex_da['Price_(£)'].clip(lower=lower, upper=upper, inplace=True) 
 
 # normalise the price
 scaler = MinMaxScaler()
 n2ex_da[['Price_(£)']] = scaler.fit_transform(n2ex_da[['Price_(£)']])
 
 # save scaaler for inverse transform
-with open(f"./Data/processed_data/da_price_scaler.pkl", "wb") as scaler_store:
+with open(f"./Data/processed_data/da_price_scaler_2018_2019.pkl", "wb") as scaler_store:
 	dump(scaler, scaler_store)
 
 
@@ -128,9 +127,9 @@ def input_output(ts, times_data, dates, input_seq_size, output_seq_size):
 	x_input = np.concatenate([x_input, x_times_data], axis=-1)
 
 
-	X_train, X_test, y_train, y_test = train_test_split(x_input, y_output, test_size=0.1, shuffle=False)
+	X_train, X_test, y_train, y_test = train_test_split(x_input, y_output, test_size=0.5, shuffle=False)
 
-	X_train_times, X_test_times, y_train_times, y_test_times = train_test_split(x_input_times, y_output_times, test_size=0.1, shuffle=False)
+	X_train_times, X_test_times, y_train_times, y_test_times = train_test_split(x_input_times, y_output_times, test_size=0.5, shuffle=False)
 
 
 	train_data = {
@@ -158,10 +157,10 @@ def input_output(ts, times_data, dates, input_seq_size, output_seq_size):
 train_data, test_data = input_output(ts, times_data, dates, input_seq_size=336, output_seq_size=24)
 
 # save data
-with open(f"./Data/processed_data/train_data_336hr_in_24hr_out_unshuffled.pkl", "wb") as trainset:
+with open(f"./Data/processed_data/train_data_336hr_in_24hr_out_unshuffled_2018_2019.pkl", "wb") as trainset:
 	dump(train_data, trainset)
 
-with open("./Data/processed_data/test_data_336hr_in_24hr_out_unshuffled.pkl", "wb") as testset:
+with open("./Data/processed_data/test_data_336hr_in_24hr_out_unshuffled_2018_2019.pkl", "wb") as testset:
 	dump(test_data, testset)
 
 
