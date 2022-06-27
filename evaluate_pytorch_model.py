@@ -23,14 +23,14 @@ model.eval()
 data_set = 'test'
 
 # load test data
-test_load = open(f"./Data/processed_data/{data_set}_data_336hr_in_24hr_out_unshuffled.pkl", "rb") 
+test_load = open(f"./Data/processed_data/{data_set}_data_336hr_in_24hr_out_unshuffled_test.pkl", "rb") 
 test_data = load(test_load)
 test_load.close()
 
 
 print(test_data.keys())
 
-# print(test_data['X_train'].shape)
+print(test_data['X_test'].shape)
 
 # print(test_data['y_train_times'])
 
@@ -64,7 +64,7 @@ print(test_data[f'X_{data_set}'].shape)
 print(y_true.shape)
 print(prediction.shape)
 
-idx = 3275
+idx = 190
 plt.plot(np.squeeze(prediction[idx:idx+7]).flatten(), label="pred")
 plt.plot(np.squeeze(y_true[idx:idx+7,:,0]).flatten(), label="true")
 plt.legend()
@@ -75,7 +75,7 @@ y_true = np.squeeze(y_true)
 prediction = np.squeeze(prediction)
 
 # load scaler 
-scaler = load(open(f'./Data/processed_data/da_price_scaler.pkl', 'rb'))
+scaler = load(open(f'./Data/processed_data/da_price_scaler_test.pkl', 'rb'))
 
 
 test_len = len(y_true)
