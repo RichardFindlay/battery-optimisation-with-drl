@@ -2,20 +2,23 @@ import pandas as pd
 import numpy as np
 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from pickle import dump
 
-
+from workalendar.europe import UnitedKingdom
+cal = UnitedKingdom()
 
 # create train and test set data
-n2ex_da = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2018_2019.csv', header=0)
+n2ex_da = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2015_v3.csv', header=0)
 
 
 # convert series to datetime
-n2ex_da['Datetime_CET'] = pd.to_datetime(n2ex_da['Datetime_CET'])
+n2ex_da['utc_timestamp'] = pd.to_datetime(n2ex_da['utc_timestamp'],format='%d/%m/%Y %H:%M')
 
 # set datetime as index
-n2ex_da.set_index(n2ex_da['Datetime_CET'], inplace=True)
+# n2ex_da.set_index(n2ex_da['utc_timestamp'], inplace=True)
+# n2ex_da.index = pd.to_datetime(n2ex_da['utc_timestamp'], format = '%d/%m/%Y %H:%M')
+
 
 # remove outliers IQR Method
 # q15 = n2ex_da.quantile(0.15).values
@@ -32,56 +35,82 @@ n2ex_da.set_index(n2ex_da['Datetime_CET'], inplace=True)
 scaler = MinMaxScaler()
 n2ex_da[['Price_(£)']] = scaler.fit_transform(n2ex_da[['Price_(£)']])
 
-# save scaaler for inverse transform
-with open(f"./Data/processed_data/da_price_scaler_2018_2019.pkl", "wb") as scaler_store:
+# save scaler for inverse transform
+with open(f"./Data/processed_data/da_price_scaler.pkl", "wb") as scaler_store:
 	dump(scaler, scaler_store)
 
+# # split data into days i
+# days_df =[]
+# for group in n2ex_da.groupby(n2ex_da.index.date):
+#     days_df.append(group[1])
 
-# split data into days i
-days_df =[]
-for group in n2ex_da.groupby(n2ex_da.index.date):
-    days_df.append(group[1])
+# # remove days with any nan values
+# idx = 0
+# for d in range(len(days_df)):
+# 	if days_df[idx].isnull().values.any():
+# 		del days_df[idx] 
+# 		idx -= 1
+# 	idx += 1 
 
-# remove days with any nan values
-idx = 0
-for d in range(len(days_df)):
-	if days_df[idx].isnull().values.any():
-		del days_df[idx] 
-		idx -= 1
-	idx += 1 
-
-ts_df = pd.concat(days_df)
-ts = ts_df['Price_(£)']
+# ts_df = pd.concat(days_df)
+ts = n2ex_da['Price_(£)']
 ts = np.expand_dims(ts.values, axis=-1)
 
-dates = ts_df.index.values
+dates = n2ex_da.index
 dates = np.array(dates, dtype = 'datetime64[ns]')
+
+print(n2ex_da['utc_timestamp'].values)
+# dates.to_clipboard()
 
 # data engineering
 df_times = pd.DataFrame()
-df_times['hour'] = ts_df.index.hour 
-df_times['month'] = ts_df.index.month - 1
-df_times['year'] = ts_df.index.year
+df_times['hour'] = n2ex_da['utc_timestamp'].dt.hour
+df_times['day'] = n2ex_da['utc_timestamp'].dt.day
+df_times['month'] = n2ex_da['utc_timestamp'].dt.month 
+df_times['day_of_year'] = n2ex_da['utc_timestamp'].dt.dayofyear 
+df_times['day_of_week'] = n2ex_da['utc_timestamp'].dt.dayofweek 
+# df_times['year'] = n2ex_da.index.year 
+df_times['weekend'] = df_times['day_of_week'].apply(lambda x: 1 if x>=5 else 0)
+
+
+start_year = int(n2ex_da['utc_timestamp'].dt.year.min())
+end_year = int(n2ex_da['utc_timestamp'].dt.year.max())
+
+start_date = n2ex_da['utc_timestamp'].min()
+end_date = n2ex_da['utc_timestamp'].max()
+
+# add holidays boolean indicator
+holidays = set(holiday[0] 
+	for year in range(start_year, end_year + 1) 
+	for holiday in cal.holidays(year)
+	if start_date <=  holiday[0] <= end_date)
+
+df_times['holiday'] = n2ex_da['utc_timestamp'].isin(holidays).astype(int)
+
+# df_times['price'] = ts
+
+
+# normalise features in each column
+for col_idx, col in enumerate(df_times.columns.values[:-2]): # ignore the last two colums as one-hot encoding
+	df_times[col] = (df_times[col] - np.min(df_times[col]))  / (np.max(df_times[col]) - np.min(df_times[col]))
 
 
 # create sin / cos of input times
-times_out_hour_sin = np.expand_dims(np.sin(2*np.pi*df_times['hour']/np.max(df_times['hour'])), axis=-1)
-times_out_month_sin = np.expand_dims(np.sin(2*np.pi*df_times['month']/np.max(df_times['month'])), axis=-1)
+# times_out_hour_sin = np.expand_dims(np.sin(2*np.pi*df_times['hour']/np.max(df_times['hour'])), axis=-1)
+# times_out_month_sin = np.expand_dims(np.sin(2*np.pi*df_times['month']/np.max(df_times['month'])), axis=-1)
 
-times_out_hour_cos = np.expand_dims(np.cos(2*np.pi*df_times['hour']/np.max(df_times['hour'])), axis=-1)
-times_out_month_cos = np.expand_dims(np.cos(2*np.pi*df_times['month']/np.max(df_times['month'])), axis=-1)
+# times_out_hour_cos = np.expand_dims(np.cos(2*np.pi*df_times['hour']/np.max(df_times['hour'])), axis=-1)
+# times_out_month_cos = np.expand_dims(np.cos(2*np.pi*df_times['month']/np.max(df_times['month'])), axis=-1)
 
-times_out_year = np.expand_dims((df_times['year'].values - np.min(df_times['year'])) / (np.max(df_times['year']) - np.min(df_times['year'])), axis=-1)
+# times_out_year = np.expand_dims((df_times['year'].values - np.min(df_times['year'])) / (np.max(df_times['year']) - np.min(df_times['year'])), axis=-1)
 
+# times_data = np.concatenate((times_out_hour_sin, times_out_hour_cos, times_out_month_sin, times_out_month_cos, times_out_year), axis=-1)
 
-times_data = np.concatenate((times_out_hour_sin, times_out_hour_cos, times_out_month_sin, times_out_month_cos, times_out_year), axis=-1)
+times_data = df_times.values
 
 # print(times_data.shape)
-print(ts.shape)
 
 # exit()
-
-
 
 # group days for input and output train/test data set
 def input_output(ts, times_data, dates, input_seq_size, output_seq_size):
@@ -91,13 +120,8 @@ def input_output(ts, times_data, dates, input_seq_size, output_seq_size):
 
 	while (output_start + output_seq_size) < len(ts):
 
-		# x = np.empty((input_seq_size, 1))
-		# x2 = np.empty((input_seq_size, 5))
-		# y = np.empty((output_seq_size, 1))
-
 		x_time = np.empty(((input_seq_size)), dtype = 'datetime64[ns]')
 		y_time = np.empty(((output_seq_size)), dtype = 'datetime64[ns]')
-
 
 		input_end = input_start + input_seq_size
 		output_end = output_start + output_seq_size
@@ -109,7 +133,6 @@ def input_output(ts, times_data, dates, input_seq_size, output_seq_size):
 		output_seq = ts[output_start:output_end]
 		y_output.append(output_seq)
 	
-
 		x_time[:] = dates[input_start:input_end]
 		in_times.append(x_time)
 		y_time[:] = dates[output_start:output_end]
@@ -117,6 +140,10 @@ def input_output(ts, times_data, dates, input_seq_size, output_seq_size):
 
 		input_start += 1 
 		output_start += 1
+
+		# steps for test data set
+		# input_start += output_seq_size 
+		# output_start += output_seq_size
 
 	x_input = np.array(x_input)
 	x_times_data = np.array(x_times_data)
@@ -126,11 +153,9 @@ def input_output(ts, times_data, dates, input_seq_size, output_seq_size):
 
 	x_input = np.concatenate([x_input, x_times_data], axis=-1)
 
+	X_train, X_test, y_train, y_test = train_test_split(x_input, y_output, test_size=0.1998859229, shuffle=True) # split used to capture 2019 only
 
-	X_train, X_test, y_train, y_test = train_test_split(x_input, y_output, test_size=0.5, shuffle=False)
-
-	X_train_times, X_test_times, y_train_times, y_test_times = train_test_split(x_input_times, y_output_times, test_size=0.5, shuffle=False)
-
+	X_train_times, X_test_times, y_train_times, y_test_times = train_test_split(x_input_times, y_output_times, test_size=0.1998859229, shuffle=True)
 
 	train_data = {
 		'X_train': X_train,
@@ -154,13 +179,14 @@ def input_output(ts, times_data, dates, input_seq_size, output_seq_size):
 
 
 
-train_data, test_data = input_output(ts, times_data, dates, input_seq_size=336, output_seq_size=24)
+train_data, test_data = input_output(ts, times_data, dates, input_seq_size=168, output_seq_size=24)
+
 
 # save data
-with open(f"./Data/processed_data/train_data_336hr_in_24hr_out_unshuffled_2018_2019.pkl", "wb") as trainset:
+with open(f"./Data/processed_data/train_data_336hr_in_24hr_out_shuffled.pkl", "wb") as trainset:
 	dump(train_data, trainset)
 
-with open("./Data/processed_data/test_data_336hr_in_24hr_out_unshuffled_2018_2019.pkl", "wb") as testset:
+with open("./Data/processed_data/test_data_336hr_in_24hr_out_shuffled.pkl", "wb") as testset:
 	dump(test_data, testset)
 
 
