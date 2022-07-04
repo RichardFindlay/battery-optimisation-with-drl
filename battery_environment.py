@@ -159,6 +159,7 @@ class Battery(gym.Env):
 			self.alpha_d = 0
 		else:
 			self.alpha_d = ((self.ep_start_kWh_remain - self.ep_end_kWh_remain) / self.ep_pwr) * self.kWh_cost
+
 			print(f'start_chrage = {self.ep_start_kWh_remain}')
 			print(f'end_chrage = {self.ep_end_kWh_remain}')
 			print(f'episode-power = {self.ep_pwr}')
@@ -251,21 +252,21 @@ class Battery(gym.Env):
 		if self.price_track == 'true': 
 			ts_price_MW = self.true_scaler.inverse_transform(np.expand_dims(self.ep_prices[self.ts:self.ts+1],axis=-1))
 
-		ts_price_kW = ts_price_MW / 1000 
+		ts_price_kW = ts_price_MW / 1000
 		# ts_price = np.expand_dims(self.ep_prices[self.ts:self.ts+1],axis=-1)
 		# ts_reward =  np.clip((ts_price * (action_kw / self.pr)) - (self.alpha_d * (abs(action_kw) / self.pr)), -1,1)
 		# ts_reward_1 =  np.squeeze(ts_price_kW * (action_kWh_clipped /  self.pr))
 		# ts_reward_2 =  self.alpha_d * (abs(action_kWh_clipped) / self.pr)
 		# ts_reward =  ts_reward_1 - ts_reward_2
 		# ts_reward =  np.squeeze(ts_price_kW * action_kWh_clipped)
-		ts_reward = np.squeeze(ts_price_kW * (action_kWh_clipped / self.pr) - (self.alpha_d * (abs(action_kWh_clipped) / self.pr)))
+		ts_reward = np.squeeze((ts_price_kW * (action_kWh_clipped / self.pr)) - (self.alpha_d * (abs(action_kWh_clipped) / self.pr)))
 		# ts_reward =  np.squeeze(ts_price_kW * action_kWh_clipped)
 
 		# collect power charge & discharge for episode
 		self.ep_pwr += abs(action_kWh_clipped)
 
 		# keep track of cycle number for degradation
-		self.cycle_num += (abs(action_kWh_clipped) / self.pr) / 2
+		self.cycle_num += (abs(action_kWh_clipped) / self.cr) / 2
 
 		# print(f'day_num: {self.day_num}')
 		# print(f'ts_reward: {ts_reward}')
@@ -308,7 +309,8 @@ class Battery(gym.Env):
 		# 	self.day_num = 0
 
 		# scale reward for quicker learning
-		ts_reward = np.around(ts_reward, 3)	
+		# ts_reward = np.around(ts_reward/100, 3)
+		# ts_reward = np.around(ts_reward, 3)	
 		ts_reward = np.clip(ts_reward, -1, 1)
 
 		# print(f'ts_reward: {ts_reward}')	
@@ -318,7 +320,7 @@ class Battery(gym.Env):
 
 		# print(f'price: {ts_price}')
 		# ts_cost = (ts_price_kW * (action_kWh_clipped / self.pr) - (self.alpha_d * (abs(action_kWh_clipped) / self.pr))
-		ts_cost = (ts_price_kW * action_kWh_clipped)
+		ts_cost = (ts_price_kW * (action_kWh_clipped))
 
 		info = {'ts_cost': ts_cost}
 		# print(f'action_clipped: {action_kWh_clipped}')
