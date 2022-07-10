@@ -16,6 +16,7 @@ from battery_degrade import BatteryDegradation
 from battery_degradation_func import calculate_degradation
 
 # T is the time period per episode, t is HH periods within T 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # create ESS environment
 class Battery(gym.Env):
@@ -54,7 +55,7 @@ class Battery(gym.Env):
 		self.game_over = False
 		self.idx_ref = 1
 		self.bug = False
-		self.true_prices = pd.read_csv('/content/drive/My Drive/Battery-RL/Data/N2EX_UK_DA_Auction_Hourly_Prices_2015_train.csv').iloc[:,-1]
+		self.true_prices = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2015_train.csv').iloc[:,-1]
 		self.price_track = env_settings['price_track']
 		self.cycle_num = 0
 
@@ -88,9 +89,9 @@ class Battery(gym.Env):
 
 		# load DA Price Predictor Pytorch Model
 		if os.path.isfile(self.torch_file):
-			self.model = LSTMCNNModel().cuda()
-			self.model.load_state_dict(torch.load(self.torch_file, map_location=torch.device('cuda:0')))
-			self.model = self.model.cuda()
+			self.model = LSTMCNNModel().to(device)
+			self.model.load_state_dict(torch.load(self.torch_file, map_location=torch.device('cpu')))
+			self.model = self.model.to(device)
 			self.model.eval()
 		else:
 			print('Pytorch model not found')
@@ -110,8 +111,10 @@ class Battery(gym.Env):
 		self.ep_prices = self._get_da_prices(da_inputs.float())
 		self.ep_prices = self.ep_prices.cpu().data.numpy()
 
-		self.true_scaler = MinMaxScaler()
-		self.true_prices = np.squeeze(self.true_scaler.fit_transform(np.expand_dims(self.true_prices,axis=-1)))
+		# load scaler as used whilst training
+		# self.true_scaler = MinMaxScaler()
+		self.true_scaler= load(open(f'./Data/scalers/train_true_scaler.pkl', 'rb'))
+		self.true_prices = np.squeeze(self.true_scaler.transform(np.expand_dims(self.true_prices,axis=-1)))
         
 
 		# self.ep_prices.append(self._get_da_prices(self.input_prices['X_train'][1]).numpy())
@@ -136,7 +139,7 @@ class Battery(gym.Env):
 		input_seq = np.expand_dims(input_seq, axis=0)
 		input_seq = np.moveaxis(input_seq, -1, 1)
 		input_seq = torch.tensor(input_seq, dtype=torch.float64)
-		input_seq = input_seq.cuda()
+		input_seq = input_seq.to(device)
 
 		with torch.no_grad(): 
 			predictions = self.model(input_seq.float())
@@ -259,7 +262,7 @@ class Battery(gym.Env):
 		# ts_reward_2 =  self.alpha_d * (abs(action_kWh_clipped) / self.pr)
 		# ts_reward =  ts_reward_1 - ts_reward_2
 		# ts_reward =  np.squeeze(ts_price_kW * action_kWh_clipped)
-		ts_reward = np.squeeze((ts_price_kW * (action_kWh_clipped / self.pr)) - (self.alpha_d * (abs(action_kWh_clipped) / self.pr)))
+		ts_reward = np.squeeze((ts_price_kW * (action_kWh_clipped)) - (self.alpha_d * (abs(action_kWh_clipped))))
 		# ts_reward =  np.squeeze(ts_price_kW * action_kWh_clipped)
 
 		# collect power charge & discharge for episode
@@ -275,6 +278,8 @@ class Battery(gym.Env):
 		# update observations
 		price_index_start = self.ts
 		price_index_end = self.ts + 24
+
+		
 
 		# if self.ep == 0:
 		# 	price_index_start += 1
@@ -309,7 +314,7 @@ class Battery(gym.Env):
 		# 	self.day_num = 0
 
 		# scale reward for quicker learning
-		# ts_reward = np.around(ts_reward/100, 3)
+		ts_reward = np.around(ts_reward/1000, 3)
 		# ts_reward = np.around(ts_reward, 3)	
 		ts_reward = np.clip(ts_reward, -1, 1)
 
@@ -322,7 +327,11 @@ class Battery(gym.Env):
 		# ts_cost = (ts_price_kW * (action_kWh_clipped / self.pr) - (self.alpha_d * (abs(action_kWh_clipped) / self.pr))
 		ts_cost = (ts_price_kW * (action_kWh_clipped))
 
-		info = {'ts_cost': ts_cost}
+		info = {'ts_cost': ts_cost,
+				'action_clipped': action_kWh_clipped,
+				'soc': next_soc,
+				'price': self.ep_prices[price_index_start:price_index_end][0]}
+
 		# print(f'action_clipped: {action_kWh_clipped}')
 		# print(f'timestep-----------------------------------------------------------------+=======: {self.ts}')
 		# print(f'day_num-----------------------------------------------------------------+=======: {self.day_num}')
@@ -369,7 +378,8 @@ class Battery(gym.Env):
 				if (self.idx_ref + idx) == len(self.input_prices['X_train']):
 					self.idx_ref = -idx
 					self.bug = True
-                
+					self.cycle_num = 0
+
 				da_inputs = torch.tensor(self.input_prices['X_train'][self.idx_ref + idx], dtype=torch.float64)
 				self.ep_prices.append(self._get_da_prices(da_inputs).cpu().data.numpy())
 			# combine arrays to create price timeseries episode length
@@ -382,13 +392,12 @@ class Battery(gym.Env):
             # deal with reset during training
 			if (self.idx_ref-1)+192 >= len(self.true_prices):
 				self.idx_ref = 1
+				self.cycle_num = 0
                 
 			self.ep_prices = self.true_prices[(self.idx_ref-1):(self.idx_ref-1)+192]
 
 			# update index ref for next price grab
 			self.idx_ref = self.idx_ref + 169
-
-
 
 
 		print(f'INDEX: {self.idx_ref}')
@@ -426,14 +435,12 @@ class Battery(gym.Env):
 		# if self.ts == 169:            
 		# 	self.ts = 0
 
-
-
-
-		
-
+		# info = {'ts_cost': 0,
+		# 		'action_clipped': 0,
+		# 		'soc': self.soc,
+		# 		'price': self.ep_prices[self.ts-1]}
 
 		return observations
-
 
 
 
