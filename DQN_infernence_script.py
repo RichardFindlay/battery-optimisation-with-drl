@@ -4,14 +4,15 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import pandas as pd
-
 import matplotlib.pyplot as plt 
+from pickle import dump
 
 from DA_ElectricityPrice import LSTMCNNModel
 from battery_degrade import BatteryDegradation
 from battery_environment import Battery
 from DQN_pytorch_V2 import DQN_Agent
 from DQN_pytorch_Dueling import DQN_Agent_double_duel
+
 
 
 
@@ -109,7 +110,6 @@ for model in dqn_types:
 
 
 # plot profit comparison
-# plot average rewards
 for idx, model in enumerate(dqn_types):
 	plt.plot(dqn_model_profits[model], label=f'{model}')
 
@@ -117,9 +117,11 @@ plt.legend(loc="lower right")
 plt.show()
 
 # save timeseries performance df via pickle
+with open('./results/timeseries_results.pkl', 'wb') as timeseries_results:
+	dump(timeseries_performance, timeseries_results)
 # timeseries_performance.to_pickle("models_timeseries_performance_df.pkl") 
 
-timeseries_performance['NN'].to_clipboard()
+# timeseries_performance['double_dueling'].to_clipboard()
 
 
 
