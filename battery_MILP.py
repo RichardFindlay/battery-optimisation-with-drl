@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import math
 
 from battery_degrade import BatteryDegradation
-
+import itertools
 
 class BatteryMILP():
 
@@ -30,10 +30,11 @@ class BatteryMILP():
 		_ref_volts = 3.6
 
 		# calculate number of cells for capactiy 
-		_cellnum = int(np.ceil(capacity/ _ref_volts))
+		_cellnum = int(np.ceil(capacity / _ref_volts))
 
 		# price dictionary
 		prices = dict(enumerate(self.df.price.tolist()))
+		# prices = dict(itertools.islice(prices.items(), 21))
 		# hourly_refs = dict(enumerate(self.df.hour.tolist()))
 
 		# define problem as pyomo's 'concrete' model
@@ -47,15 +48,15 @@ class BatteryMILP():
 		model.price = Param(model.T, initialize=prices, doc="hourly price (£/MWh)")
 
 		# set charge and discharge varaibles
-		model.energy_in = Var(model.T, domain=NonNegativeReals)
-		model.energy_out = Var(model.T, domain=NonNegativeReals)
+		model.energy_in = Var(model.T, domain=NonNegativeReals, initialize=0)
+		model.energy_out = Var(model.T, domain=NonNegativeReals, initialize=0)
 
 
 		# set state-of-charge bounds
 		model.soc = Var(model.T, bounds=(0, model.cap), initialize=0)
 
 		# set boolean charge and discharge vars
-		model.charge_bool= Var(model.T, within=Boolean)
+		model.charge_bool= Var(model.T, within=Boolean, initialize=0)
 		model.discharge_bool = Var(model.T, within=Boolean, initialize=0)
 
 		# store profit on timeseries resolution
@@ -78,12 +79,19 @@ class BatteryMILP():
 
 		# model.charnge_discharge_bool = Constraint(model.T, rule=boolean_constraint)
 
+		# boolen constraint 1
+		# def boolean_constraint1(model, t):
+		# 	return (model.charge_bool[t] + model.discharge_bool[t])	<= 1
+
+		# model.boolean_constraint = Constraint(model.T, rule=boolean_constraint1)
+
+
 		# state of charge constraint
 		def update_soc(model, t):
 			if t == model.T.first():
 				return model.soc[t] == 0.5 * model.cap
 			else:
-				return model.soc[t] == model.soc[t-1] - ((discharge_efficiency * model.energy_out[t])) + ((charging_efficiency * model.energy_in[t]))
+				return model.soc[t] == model.soc[t-1] - ((discharge_efficiency * model.energy_out[t])) + (((model.energy_in[t] / charging_efficiency)))
 
 		model.state_of_charge = Constraint(model.T, rule=update_soc)
 
@@ -109,15 +117,13 @@ class BatteryMILP():
 
 		model.discharge = Constraint(model.T, rule=discharge_constraint)
 
+
+
 		def timeseries_profit(model, t):
-			current_profit = (model.energy_out[t] * model.price[t] * discharge_efficiency)  - (model.energy_in[t] * model.price[t] * charging_efficiency) 
+			current_profit = (model.energy_out[t] * model.price[t] * discharge_efficiency)  - (model.energy_in[t] * model.price[t] / charging_efficiency) 
 			return model.profit_timeseries[t] == current_profit  
 
 		model.profit_track = Constraint(model.T, rule=timeseries_profit)
-
-		# use Big 'M' method to constrain charge and discharge
-		def charging(model, t):
-			return 
 
 
 
@@ -177,14 +183,14 @@ class BatteryMILP():
 		# define constraint for cumlative profit
 		def cumlative_profit(model, t):
 			if t == 0:
-				return model.cumulative_profit[t] == (model.energy_out[t] * model.price[t] * discharge_efficiency) - (model.energy_in[t] * model.price[t] * charging_efficiency)
+				return model.cumulative_profit[t] == (model.energy_out[t] * model.price[t] * discharge_efficiency) - (model.energy_in[t] * model.price[t] / charging_efficiency)
 			else:
-				return model.cumulative_profit[t] == model.cumulative_profit[t-1] + ((model.energy_out[t] * model.price[t] * discharge_efficiency) - (model.energy_in[t] * model.price[t] * charging_efficiency))
+				return model.cumulative_profit[t] == model.cumulative_profit[t-1] + ((model.energy_out[t] * model.price[t] * discharge_efficiency) - (model.energy_in[t] * model.price[t] / charging_efficiency))
 
 		model.all_profit = Constraint(model.T,rule=cumlative_profit)
 
-		print(model.T)
-		exit()
+
+
 
 
 		# define profit
@@ -199,10 +205,46 @@ class BatteryMILP():
 
 
 
+		# implement bigM constraint to ensure model doesn't simultaneously charge and discharge
+		def Bool_char_rule_1(model, t):
+		    bigM=5000000
+		    return((model.energy_in[t])>=-bigM*(model.charge_bool[t]))
+		model.Batt_ch1=Constraint(model.T,rule=Bool_char_rule_1)
+
+		# if battery is charging, charging must be greater than -large
+		# if not, charging geq zero
+		def Bool_char_rule_2(model, t):
+		    bigM=5000000
+		    return((model.energy_in[t])<=0+bigM*(1-model.discharge_bool[t]))
+		model.Batt_ch2=Constraint(model.T,rule=Bool_char_rule_2)
+
+		# if batt discharging, charging must be leq zero
+		# if not, charging leq +large
+		def Bool_char_rule_3(model, t):
+		    bigM=5000000
+		    return((model.energy_out[t])<=bigM*(model.discharge_bool[t]))
+		model.Batt_cd3=Constraint(model.T,rule=Bool_char_rule_3)
+
+		# if batt discharge, discharge leq POSITIVE large
+		# if not, discharge leq 0
+		def Bool_char_rule_4(model, t):
+		    bigM=5000000
+		    return((model.energy_out[t])>=0-bigM*(1-model.charge_bool[t]))
+		model.Batt_cd4=Constraint(model.T,rule=Bool_char_rule_4)
+
+		# if batt charge, discharge geq zero
+		# if not, discharge geq -large
+		def Batt_char_dis(model, t):
+		    return (model.charge_bool[t]+model.discharge_bool[t],1)
+		model.Batt_char_dis=Constraint(model.T,rule=Batt_char_dis)
+
+
 
 		# declare molde solver and solve
 		sol = SolverFactory('glpk')
 		sol.solve(model)
+
+
 
 		return model
 
@@ -210,26 +252,29 @@ class BatteryMILP():
 
 price_data = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2016_test.csv')
 
+final_results = {}
 
+# pass daily prices for optmisation
+for day_idx in range(0, len(price_data), 24):
+	print(day_idx)
 
-# Instaniate MILP battery object with price data
-a = BatteryMILP(price_data)
+	# Instaniate MILP battery object with price data
+	a = BatteryMILP(price_data[day_idx:day_idx+24])
 
-# call optmise method - storing pyomo model 
-mod = a.optimise(10, 20)
+	# call optmise method - storing pyomo model 
+	mod = a.optimise(10, 20)
 
+	model_results = {} 
 
-model_results = {} 
+	# loop through the vars 
+	for idx, v in enumerate(mod.component_objects(Var, active=True)):
+		# print(idx, v.getname())
 
-# loop through the vars 
-for idx, v in enumerate(mod.component_objects(Var, active=True)):
-    print(idx, v.getname())
+		var_val = getattr(mod, str(v))
 
-    var_val = getattr(mod, str(v))
+		model_results[f'{v.getname()}'] = var_val[:].value
 
-    model_results[f'{v.getname()}'] = var_val[:].value
-
-
+	final_results.update(model_results)
 
 df = pd.DataFrame(model_results)
 
