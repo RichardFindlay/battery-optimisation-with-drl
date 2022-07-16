@@ -60,7 +60,7 @@ class BatteryMILP():
 
 
 		# set state-of-charge bounds
-		model.soc = Var(model.T, bounds=(0.2*model.cap, model.cap), initialize=0.2*model.cap)
+		model.soc = Var(model.T, bounds=(0.2*model.cap*(remaining_capacity/100), model.cap*(remaining_capacity/100)), initialize=0.2*model.cap*(remaining_capacity/100))
 
 		# set boolean charge and discharge vars
 		model.charge_bool= Var(model.T, within=Boolean, initialize=0)
@@ -102,9 +102,9 @@ class BatteryMILP():
 		# state of charge constraint
 		def update_soc(model, t):
 			if t == 0:
-				return model.soc[t] == intial_soc
+				return model.soc[t] == intial_soc - ((model.energy_out[t])) + (((model.energy_in[t])))
 			else:
-				return model.soc[t] == model.soc[t-1] - ((discharge_efficiency * model.energy_out[t])) + (((model.energy_in[t] / charging_efficiency)))
+				return model.soc[t] == model.soc[t-1] - ((model.energy_out[t])) + (((model.energy_in[t])))
 
 		model.state_of_charge = Constraint(model.T, rule=update_soc)
 
@@ -150,6 +150,11 @@ class BatteryMILP():
 				return model.alpha_degradation[t] == 0
 
 		# model.degrade = Constraint(model.T, rule=alpha_degrade)
+
+		# calculate efficiency voc at each timestep
+
+
+
 
 
 		# # calculate efficiency - first calualte Voc & R_tot
@@ -284,7 +289,7 @@ class BatteryMILP():
 
 
 
-price_data = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2016_test.csv')
+price_data = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2015_train.csv')
 
 battery_power = 10
 battery_capacity = 20
@@ -300,6 +305,8 @@ previous_ep_power = 0
 
 # Instaniate MILP battery object with price data
 a = BatteryMILP(battery_power, battery_capacity)
+
+print(len(price_data))
 
 # pass daily prices for optmisation
 for day_idx in range(0, len(price_data), 168):
