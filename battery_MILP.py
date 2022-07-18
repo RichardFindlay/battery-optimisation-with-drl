@@ -27,18 +27,6 @@ class BatteryMILP():
 		"""
 		optimise_df : pandas dataframe containing the hourly price with date range as index
 		"""
-		_params = { # (Kim & Qiao, 2011) : https://digitalcommons.unl.edu/cgi/viewcontent.cgi?article=1210&context=electricalengineeringfacpub
-			'a_0': -0.852, 'a_1': 63.867, 'a_2': 3.6297, 'a_3': 0.559, 'a_4': 0.51, 'a_5': 0.508,
-			'b_0': 0.1463, 'b_1': 30.27, 'b_2': 0.1037, 'b_3': 0.0584, 'b_4': 0.1747, 'b_5': 0.1288,
-			'c_0': 0.1063, 'c_1': 62.94, 'c_2': 0.0437, 'd_0': -200, 'd_1': -138, 'd_2': 300,
-			'e_0': 0.0712, 'e_1': 61.4, 'e_2': 0.0288, 'f_0': -3083, 'f_1': 180, 'f_2': 5088,
-			'y1_0': 2863.3, 'y2_0': 232.66, 'c': 0.9248, 'k': 0.0008
-			}
-		_ref_volts = 3.6
-
-		# calculate number of cells for capactiy 
-		_cellnum = int(np.ceil(self.cap / _ref_volts))
-
 		# price dictionary
 		prices = dict(enumerate(price_df.price.tolist()))
 		# prices = dict(itertools.islice(prices.items(), 21))
@@ -58,7 +46,6 @@ class BatteryMILP():
 		model.energy_in = Var(model.T, domain=NonNegativeReals, initialize=0)
 		model.energy_out = Var(model.T, domain=NonNegativeReals, initialize=0)
 
-
 		# set state-of-charge bounds
 		model.soc = Var(model.T, bounds=(0.2*model.cap*(remaining_capacity/100), model.cap*(remaining_capacity/100)), initialize=0.2*model.cap*(remaining_capacity/100))
 
@@ -73,31 +60,8 @@ class BatteryMILP():
 		# declare var for cycle rate
 		model.cumlative_cycle_rate = Var(model.T, within=Reals, initialize=0)
 
-		# decalre var for alpha
-		# model.alpha_degradation = Var(model.T, within=Reals, initialize=0)
-
-		# declare Voc and Rtot
-		# model.voc = Param(model.T, within=Reals, initialize=0)
-		# model.rtot = Var(model.T, within=Reals, initialize=0)
-
-		# model.rs = Var(model.T, within=Reals, initialize=0)
-		# model.st = Var(model.T, within=Reals, initialize=0)
-		# model.tl = Var(model.T, within=Reals, initialize=0)
-
 		charging_efficiency = 0.923
 		discharge_efficiency = 0.923
-
-		# def boolean_constraint(model, t):
-		# 	return (model.charge_bool[t] + model.discharge_bool[t]) <= 1
-
-		# model.charnge_discharge_bool = Constraint(model.T, rule=boolean_constraint)
-
-		# boolen constraint 1
-		# def boolean_constraint1(model, t):
-		# 	return (model.charge_bool[t] + model.discharge_bool[t])	<= 1
-
-		# model.boolean_constraint = Constraint(model.T, rule=boolean_constraint1)
-
 
 		# state of charge constraint
 		def update_soc(model, t):
@@ -107,8 +71,6 @@ class BatteryMILP():
 				return model.soc[t] == model.soc[t-1] - ((model.energy_out[t])) + (((model.energy_in[t])))
 
 		model.state_of_charge = Constraint(model.T, rule=update_soc)
-
-
 
 		# current charge power constraint
 		def charge_constraint(model, t):
@@ -122,14 +84,11 @@ class BatteryMILP():
 
 		model.discharge = Constraint(model.T, rule=discharge_constraint)
 
-
-
 		def timeseries_profit(model, t):
 			current_profit = (model.energy_out[t] * model.price[t] * discharge_efficiency)  - (model.energy_in[t] * model.price[t] / charging_efficiency) 
 			return model.profit_timeseries[t] == current_profit  
 
 		model.profit_track = Constraint(model.T, rule=timeseries_profit)
-
 
 		# use constraint to calculate cumlative cycle rate at each timestep
 		def cycle_rate_per_ts(model,t):
@@ -140,74 +99,6 @@ class BatteryMILP():
 				return model.cumlative_cycle_rate[t] == model.cumlative_cycle_rate[t-1] + ts_cycle
 
 		model.cycles = Constraint(model.T, rule=cycle_rate_per_ts)
-
-
-		# use constraint to calculate alpha 
-		def alpha_degrade(model,t):
-			if previous_ep_power != 0:
-				return model.alpha_degradation[t] == ((((self.previous_cap - remaining_capacity)/100) * self.cap) / previous_ep_power) * self.batt_cost
-			else:
-				return model.alpha_degradation[t] == 0
-
-		# model.degrade = Constraint(model.T, rule=alpha_degrade)
-
-		# calculate efficiency voc at each timestep
-
-
-
-
-
-		# # calculate efficiency - first calualte Voc & R_tot
-		# def ss_circuit_model(model, t):
-		# 	voc = ((_params['a_0'] * exp(-_params['a_1'] * model.soc[t])) + _params['a_2'] + (_params['a_3'] * model.soc[t]) - (_params['a_4'] * model.soc[t]**2) + (_params['a_5'] * model.soc[t]**3)) * _cellnum
-		# 	return model.voc[t] == voc
-
-		# # model.voc_rtot = Constraint(model.T, rule=ss_circuit_model)
-
-		# def rtot_calc(model, t):
-		# 	return model.rs[t] == ((_params['b_0'] * math.exp(-_params['b_1'] * model.soc[t].value)) + _params['b_2'] + (_params['b_3'] * model.soc[t].value) - (_params['b_4'] * model.soc[t].value**2) + (_params['b_5'] * model.soc[t].value**3)) * _cellnum
-		# 	# model.st[t] == (_params['c_0'] * np.exp(-_params['c_1'] * model.soc[t].value) + _params['c_2']) * _cellnum
-		# 	# model.tl[t] == (_params['e_0'] * np.exp(-_params['e_1'] * model.soc[t].value) + _params['e_2']) * _cellnum
-
-		# 	# return model.rtot[t] == (model.rs[t] + model.st[t] + model.tl[t])
-
-		# # model.rtot_constraint = Constraint(model.T, rule=rtot_calc)
-
-
-		# # calculate open circuit voltage and total resistence at time 't'
-		# def ss_circuit_model(self, model, t):
-		# 	v_oc = ((self._params['a_0'] * np.exp(-self._params['a_1'] * model.soc[t])) + self._params['a_2'] + (self._params['a_3'] * model.soc[t]) - (self._params['a_4'] * model.soc[t]**2) + (self._params['a_5'] * model[t].soc**3)) * self._cellnum
-		# 	r_s = ((self._params['b_0'] * np.exp(-self._params['b_1'] * model.soc[t])) + self._params['b_2'] + (self._params['b_3'] * model.soc[t]) - (self._params['b_4'] * model.soc[t]**2) + (self._params['b_5'] * model[t].soc**3)) * self._cellnum
-		# 	r_st = (self._params['c_0'] * np.exp(-self._params['c_1'] * model.soc[t]) + self._params['c_2']) * self._cellnum
-		# 	r_tl = (self._params['e_0'] * np.exp(-self._params['e_1'] * model.soc[t]) + self._params['e_2']) * self._cellnum
-		# 	r_tot = (r_s + r_st + r_tl)
-		# 	return v_oc, r_tot	
-
-		# model.v_oc, model.r_tot = Constraint(model.T, rule=ss_circuit_model)
-
-		# # method to calculate current
-		# def circuit_current(self, model, t):
-		# 	if model.charge[t] > 0:
-		# 		icur = (model.v_oc[t] - np.sqrt((model.v_oc[t]**2) - (4 * (model.r_tot[t] * model.charge[t])))) / (2 * model.r_tot[t]) 
-		# 	elif model.discharge[t] > 0:
-		# 		icur = (model.v_oc[t] - np.sqrt((model.v_oc[t]**2) - (4 * (model.r_tot[t] * model.discharge[t])))) / (2 * model.r_tot[t]) 
-		# 	return icur
-
-		# model.icur = Constraint(model.T, rule=circuit_current)
-
-		# # define method for calculate efficency
-		# def calc_efficiency(self, model, t):
-		# 	if model.charge[t] > 0:
-		# 		efficiency = 1 / ((model.v_oc[t] - (model.r_tot[t] * model.icur[t])) / model.v_oc[t])
-		# 	elif model.discharge[t] > 0:
-		# 		efficiency =  model.v_oc[t] / (model.v_oc[t] - (model.r_tot[t] * model.icur[t]))
-		# 	else:
-		# 		efficiency = 1.0
-
-		# 	return efficiency 		
-
-		# model.effiency = Constraint(model.T, rule=calc_efficiency)
-
 
 		# define constraint for cumlative profit
 		def cumlative_profit(model, t):
@@ -224,7 +115,6 @@ class BatteryMILP():
 		else:
 			alpha_degradation = 0 
 
-
 		# get degradation cost
 		degrade_cost = [alpha_degradation * (model.energy_out[t] + model.energy_in[t]) for t in model.T]
 
@@ -237,8 +127,6 @@ class BatteryMILP():
 
 		# declare objective function
 		model.objective = Objective(expr=profit_obj, sense=maximize)
-
-
 
 		# implement bigM constraint to ensure model doesn't simultaneously charge and discharge
 		def Bool_char_rule_1(model, t):
@@ -273,13 +161,9 @@ class BatteryMILP():
 		    return (model.charge_bool[t]+model.discharge_bool[t],1)
 		model.Batt_char_dis=Constraint(model.T,rule=Batt_char_dis)
 
-
-
 		# declare molde solver and solve
 		sol = SolverFactory('glpk')
 		sol.solve(model)
-
-
 
 		return model
 
@@ -289,7 +173,7 @@ class BatteryMILP():
 
 
 
-price_data = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2015_train.csv')
+price_data = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2019_test.csv')
 
 battery_power = 10
 battery_capacity = 20
@@ -306,14 +190,9 @@ previous_ep_power = 0
 # Instaniate MILP battery object with price data
 a = BatteryMILP(battery_power, battery_capacity)
 
-print(len(price_data))
-
 # pass daily prices for optmisation
 for day_idx in range(0, len(price_data), 168):
 	print(day_idx)
-
-	# Instaniate MILP battery object with price data
-	# a = BatteryMILP(price_data[day_idx:day_idx+168])
 
 	# call optmise method - storing pyomo model 
 	mod = a.optimise(price_data[day_idx:day_idx+168], soc, current_cycle, remaining_capacity, previous_ep_power)
@@ -348,6 +227,11 @@ for day_idx in range(0, len(price_data), 168):
 	previous_ep_power = abs(np.sum(df['energy_in'].iloc[-168:] + df['energy_out'].iloc[-168:]))
 
 
+# update cumlative profit so ensure profits carried between episodes
+df['cumulative_profit'] = df['profit_timeseries'].cumsum()
+
+# save profits for runtime duration (for comparison with DQN models)
+df.to_csv('./results/timeseries_results_MILP.csv')
 
 df.to_clipboard()
 
