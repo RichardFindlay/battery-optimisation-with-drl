@@ -17,20 +17,16 @@ class BatteryMILP():
 		self.pwr = battery_power
 
 		self.previous_cap = 100
-		self.batt_cost = 75000
-
-		# self.intial_soc = 0.2 * self.cap
-
+		self.batt_cost = 75000 # £/MWh
 
 	def optimise(self, price_df, intial_soc, current_cycle_num, remaining_capacity, previous_ep_power):
 
 		"""
 		optimise_df : pandas dataframe containing the hourly price with date range as index
 		"""
+		
 		# price dictionary
 		prices = dict(enumerate(price_df.price.tolist()))
-		# prices = dict(itertools.islice(prices.items(), 21))
-		# hourly_refs = dict(enumerate(self.df.hour.tolist()))
 
 		# define problem as pyomo's 'concrete' model
 		model = ConcreteModel()
