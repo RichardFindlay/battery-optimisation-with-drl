@@ -33,37 +33,44 @@ env_settings = {
 }
 
 # DQN models
-dqn_models = ['vanilla', 'double_dueling', 'NN']
-
-# episode + time range parameters
-n_episodes = 12000 # max 67925
-time_range = 168
-
-# e-greedy params
-epsilon = 1.0
-epsilon_end = 0.01
-epsilon_decay = 0.9996
-
-# instaniate environment 
-env = Battery(env_settings)
-state_size = (env.observation_space.shape[0])
-action_size = len(env.action_space)
-
-# further DQN params
-learning_rate = 25e-5 
-buffer_size = int(1e5)
-batch_size = 32 # 64 best
-gamma = 0.99
-# tau = 1e-3
-tau = 1 # i.e. 'hard' update
-update = 10000 
+# dqn_models = ['vanilla', 'double_dueling', 'NN']
+dqn_models = ['NN']
 
 # training loop:
 for model in dqn_models: # loop for each model type
+
+	# episode + time range parameters
+	n_episodes = 12000 # max 67925
+	time_range = 168
+
+	# e-greedy params
+	if model != 'NN':
+		epsilon = 1.0
+		epsilon_end = 0.01
+		epsilon_decay = 0.9996
+	else:
+		epsilon = 0
+		epsilon_end = 0
+		epsilon_decay = 0
+
+	# further DQN params
+	learning_rate = 25e-5 
+	buffer_size = int(1e5)
+	batch_size = 64 # 64 best
+	gamma = 0.99
+	# tau = 1e-3
+	tau = 1 # i.e. 'hard' update
+	update = 10000
+
+	# instaniate environment 
+	env = Battery(env_settings)
+	state_size = (env.observation_space.shape[0])
+	action_size = len(env.action_space)
+
 	print(model)
 	# instaniate DQN agent
 	if model == "double_dueling":
-		dqn_agent = DQN_Agent_double_duel(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed, soft_update=False, qnet_type='vanilla')
+		dqn_agent = DQN_Agent_double_duel(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed, soft_update=False)
 	else:
 		dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed, soft_update=False, qnet_type=model)        
 
