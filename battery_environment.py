@@ -44,7 +44,7 @@ class Battery(gym.Env):
 		self.ts_len = 168								# max timestep length
 		self.ep = 0   									# episode increment
 		self.ep_pwr = 0     							# total absolute power per each episode
-		self.ep_start_kWh_remain = 0     						# episode start charge
+		self.ep_start_kWh_remain = self.cr     						# episode start charge
 		self.ep_end_kWh_remain = 0     						# episode end charge
 		self.kWh_cost = 75     						# battery cost per kWh
 		self.price_ref = 0 	 							# counter to keep track of da price index
@@ -114,14 +114,14 @@ class Battery(gym.Env):
 		# load scaler as used whilst training
 		# self.true_scaler = MinMaxScaler()
 		self.true_scaler= load(open(f'./Data/scalers/train_true_scaler.pkl', 'rb'))
-		self.true_prices = np.squeeze(self.true_scaler.transform(np.expand_dims(self.true_prices,axis=-1)))
+		self.true_prices = np.squeeze(self.true_scaler.fit_transform(np.expand_dims(self.true_prices,axis=-1)))
         
 
 		# self.ep_prices.append(self._get_da_prices(self.input_prices['X_train'][1]).numpy())
 		# self.ep_prices = np.concatenate(self.ep_prices)
 
 	def _next_soc(self, soc_t, efficiency, action, standby_loss):
-		e_ess = self.cr
+		e_ess = self.ep_start_kWh_remain
 		if np.around(soc_t, 2) == 0 and action == 0:
 			next_soc = soc_t
 		elif action < 0:
@@ -161,7 +161,7 @@ class Battery(gym.Env):
 		if self.ep_pwr == 0:
 			self.alpha_d = 0
 		else:
-			self.alpha_d = ((self.ep_start_kWh_remain - self.ep_end_kWh_remain) / self.ep_pwr) * self.kWh_cost
+			self.alpha_d = ((self.ep_start_kWh_remain - self.ep_end_kWh_remain) / self.ep_pwr) * self.kWh_cost 
 
 			print(f'start_chrage = {self.ep_start_kWh_remain}')
 			print(f'end_chrage = {self.ep_end_kWh_remain}')
@@ -215,8 +215,8 @@ class Battery(gym.Env):
 		efficiency = self.batt_deg.calc_efficiency(v_oc, r_tot, icur, action_kw)
 
 		# clip charge / discahrge relatiev to SoC limits
-		charge_lim = ((current_soc - 0) * self.cr) / (efficiency * 1)
-		discharge_lim = ((current_soc - 1) * self.cr) / (efficiency * 1)
+		charge_lim = ((current_soc - 0.2) * self.ep_start_kWh_remain) / (efficiency * 1)
+		discharge_lim = ((current_soc - 1) * self.ep_start_kWh_remain) / (efficiency * 1)
 
 		# clip action to ensure within limits
 		action_kWh_clipped = np.clip(action_kwh, discharge_lim,  charge_lim)
@@ -228,7 +228,7 @@ class Battery(gym.Env):
 		next_soc = self._next_soc(current_soc, efficiency, action_kWh_clipped, self.standby_loss)
 
 		# detemine if charge/discharge is out of bounds, i.e. <20% and >100% else fail episode
-		if next_soc < 0 or next_soc > 1.0:
+		if np.around(next_soc,2) < 0.2 or np.around(next_soc,2) > 1.0:
 			print('error - limits breached')
 			print(action_kWh_clipped)
 			print(current_soc)
@@ -256,28 +256,27 @@ class Battery(gym.Env):
 			ts_price_MW = self.true_scaler.inverse_transform(np.expand_dims(self.ep_prices[self.ts:self.ts+1],axis=-1))
 
 		ts_price_kW = ts_price_MW / 1000
+		action_MW_clipped = action_kWh_clipped / 1000
 		# ts_price = np.expand_dims(self.ep_prices[self.ts:self.ts+1],axis=-1)
 		# ts_reward =  np.clip((ts_price * (action_kw / self.pr)) - (self.alpha_d * (abs(action_kw) / self.pr)), -1,1)
 		# ts_reward_1 =  np.squeeze(ts_price_kW * (action_kWh_clipped /  self.pr))
 		# ts_reward_2 =  self.alpha_d * (abs(action_kWh_clipped) / self.pr)
 		# ts_reward =  ts_reward_1 - ts_reward_2
-		# ts_reward =  np.squeeze(ts_price_kW * action_kWh_clipped)
-		ts_reward = np.squeeze((ts_price_kW * (action_kWh_clipped)) - (self.alpha_d * (abs(action_kWh_clipped))))
+		ts_reward =  np.squeeze(ts_price_kW * action_kWh_clipped)
+		# ts_reward = np.squeeze((ts_price_kW * (action_kWh_clipped / self.pr)) - (self.alpha_d * (abs(action_kWh_clipped) / self.pr)))
 		# ts_reward =  np.squeeze(ts_price_kW * action_kWh_clipped)
 
 		# collect power charge & discharge for episode
 		self.ep_pwr += abs(action_kWh_clipped)
 
 		# keep track of cycle number for degradation
-		self.cycle_num += (abs(action_kWh_clipped) / self.cr) / 2
+		self.cycle_num += (abs(action_kWh_clipped) / self.ep_start_kWh_remain) / 2
 
 		# print(f'day_num: {self.day_num}')
 		# print(f'ts_reward: {ts_reward}')
 		# print(f'action: {action_kw}')
 
-		# update observations
-		price_index_start = self.ts
-		price_index_end = self.ts + 24
+
 
 		
 
@@ -286,21 +285,19 @@ class Battery(gym.Env):
 		# 	price_index_end += 1
 		# print(f'ts_int: {self.ts}')
 		# obs = np.append(self.ts / 24, next_soc)
-		observations = np.append(self.ep_prices[price_index_start:price_index_end],  np.around(next_soc,4))
+		observations = np.append(self.ep_prices[self.ts:self.ts+24],  np.around(next_soc,4))
 
 		if step == self.ts_len - 1:
 			print('_______________________________')
 			# ts_reward +=  50
 			# self.ep_end_kWh = next_soc * self.cr
-			self.ts -= 1
+			# self.ts -= 1
 			self.done = True
 
 		self.soc = next_soc
 		self.new_ep = False
 
-		# increment timestep
-		self.ts += 1
-		self.total_ts += 1
+
 		# ts_reward += 0.5
 
 		# print('epidsode_prices_len')
@@ -314,9 +311,9 @@ class Battery(gym.Env):
 		# 	self.day_num = 0
 
 		# scale reward for quicker learning
-		ts_reward = np.around(ts_reward/1000, 3)
+		ts_reward = np.around(ts_reward/1000, 4)
 		# ts_reward = np.around(ts_reward, 3)	
-		ts_reward = np.clip(ts_reward, -1, 1)
+		# ts_reward = np.clip(ts_reward, -1, 1)
 
 		# print(f'ts_reward: {ts_reward}')	
 		# print(f'action: {action_kWh_clipped}')	
@@ -325,12 +322,13 @@ class Battery(gym.Env):
 
 		# print(f'price: {ts_price}')
 		# ts_cost = (ts_price_kW * (action_kWh_clipped / self.pr) - (self.alpha_d * (abs(action_kWh_clipped) / self.pr))
-		ts_cost = (ts_price_kW * (action_kWh_clipped))
+		# ts_cost = np.squeeze((ts_price_kW * (action_kWh_clipped)) - (self.alpha_d * (abs(action_kWh_clipped))))
+		ts_cost = np.squeeze((ts_price_kW * (action_kWh_clipped)))
 
 		info = {'ts_cost': ts_cost,
-				'action_clipped': action_kWh_clipped,
+				'action_clipped': action_kWh_clipped / self.pr, # normalised for more convient graphing
 				'soc': next_soc,
-				'price': self.ep_prices[price_index_start:price_index_end][0]}
+				'price': self.true_scaler.inverse_transform(self.ep_prices[self.ts:self.ts+24][0].reshape(1, -1))}
 
 		# print(f'action_clipped: {action_kWh_clipped}')
 		# print(f'timestep-----------------------------------------------------------------+=======: {self.ts}')
@@ -338,6 +336,10 @@ class Battery(gym.Env):
 
 		# print(f'ts_chrage_end: {next_soc}')
 		# print('--------------------------------------------')
+
+		# increment timestep
+		self.ts += 1
+		self.total_ts += 1
 
 		return observations, ts_reward, self.done, info
 
@@ -378,7 +380,7 @@ class Battery(gym.Env):
 				if (self.idx_ref + idx) == len(self.input_prices['X_train']):
 					self.idx_ref = -idx
 					self.bug = True
-					self.cycle_num = 0
+					# self.cycle_num = 0
 
 				da_inputs = torch.tensor(self.input_prices['X_train'][self.idx_ref + idx], dtype=torch.float64)
 				self.ep_prices.append(self._get_da_prices(da_inputs).cpu().data.numpy())
@@ -390,14 +392,14 @@ class Battery(gym.Env):
 		elif self.price_track == 'true':
 
             # deal with reset during training
-			if (self.idx_ref-1)+192 >= len(self.true_prices):
+			if (self.idx_ref)+192 >= len(self.true_prices):
 				self.idx_ref = 1
-				self.cycle_num = 0
+				# self.cycle_num = 0
                 
 			self.ep_prices = self.true_prices[(self.idx_ref-1):(self.idx_ref-1)+192]
 
 			# update index ref for next price grab
-			self.idx_ref = self.idx_ref + 169
+			self.idx_ref = self.idx_ref + 168
 
 
 		print(f'INDEX: {self.idx_ref}')
@@ -419,7 +421,7 @@ class Battery(gym.Env):
 
 
 
-		self.ts += 1
+		# self.ts += 1
 		self.done = False
 		self.game_over = False
 
