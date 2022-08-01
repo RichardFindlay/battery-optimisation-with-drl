@@ -35,7 +35,7 @@ class Battery(gym.Env):
 		self.test_data_path = env_settings['test_data_path']
 		self.scaler_transform_path = env_settings['scaler_transform_path']
 		self.alpha_d = 0    							# degradation coefficient
-		self.soc = 0.5								# intial state of charge
+		self.soc = 0.5									# intial state of charge
 		self.charging_eff = None						# charging efficiency
 		self.dis_charging_eff = None					# dis-charging efficiency
 		self.dod = None									# depth of dis-charge
@@ -44,9 +44,9 @@ class Battery(gym.Env):
 		self.ts_len = 168								# max timestep length
 		self.ep = 0   									# episode increment
 		self.ep_pwr = 0     							# total absolute power per each episode
-		self.ep_start_kWh_remain = self.cr     						# episode start charge
-		self.ep_end_kWh_remain = 0     						# episode end charge
-		self.kWh_cost = 75     						# battery cost per kWh
+		self.ep_start_kWh_remain = self.cr     			# episode start charge
+		self.ep_end_kWh_remain = 0     					# episode end charge
+		self.kWh_cost = 75     							# battery cost per kWh
 		self.price_ref = 0 	 							# counter to keep track of da price index
 		self.input_seq_size = 168
 		self.done = False
@@ -58,6 +58,7 @@ class Battery(gym.Env):
 		self.true_prices = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2015_train.csv').iloc[:,-1]
 		self.price_track = env_settings['price_track']
 		self.cycle_num = 0
+		self.forecast_index = 0 # index to keep track of forecasting horizon inputs
 
 
 		# define parameter limits
@@ -373,33 +374,73 @@ class Battery(gym.Env):
 		# print(f'day_num-----------------------------------------------------------------+=======: {self.day_num}')
 		# observations = np.append(self.ep_prices[self.ep + self.price_ref], self.soc)
 
-		if self.price_track == 'forecasted':
-			self.ep_prices = []
-			for idx in range((self.ts_len // 24) + 1):
-            	# deal with reset during training
-				if (self.idx_ref + idx) == len(self.input_prices['X_train']):
-					self.idx_ref = -idx
-					self.bug = True
-					# self.cycle_num = 0
+		# if self.price_track == 'forecasted':
+		# 	self.ep_prices = []
+		# 	for idx in range((self.ts_len // 24) + 1):
+  #           	# deal with reset during training
+		# 		if (self.idx_ref + idx) == len(self.input_prices['X_train']):
+		# 			self.idx_ref = -idx
+		# 			self.bug = True
+		# 			# self.cycle_num = 0
 
-				da_inputs = torch.tensor(self.input_prices['X_train'][self.idx_ref + idx], dtype=torch.float64)
-				self.ep_prices.append(self._get_da_prices(da_inputs).cpu().data.numpy())
-			# combine arrays to create price timeseries episode length
-			self.ep_prices = np.concatenate(self.ep_prices)
-			# update index ref for next price grab
-			self.idx_ref = self.idx_ref + idx
+		# 		da_inputs = torch.tensor(self.input_prices['X_train'][self.idx_ref + idx], dtype=torch.float64)
+		# 		self.ep_prices.append(self._get_da_prices(da_inputs).cpu().data.numpy())
+		# 	# combine arrays to create price timeseries episode length
+		# 	self.ep_prices = np.concatenate(self.ep_prices)
+		# 	# update index ref for next price grab
+		# 	self.idx_ref = self.idx_ref + idx
 
-		elif self.price_track == 'true':
+		# elif self.price_track == 'true':
 
-            # deal with reset during training
-			if (self.idx_ref)+192 >= len(self.true_prices):
-				self.idx_ref = 1
-				# self.cycle_num = 0
+  #           # deal with reset during training
+		# 	if (self.idx_ref)+192 >= len(self.true_prices):
+		# 		self.idx_ref = 1
+		# 		# self.cycle_num = 0
                 
-			self.ep_prices = self.true_prices[(self.idx_ref-1):(self.idx_ref-1)+192]
+		# 	self.ep_prices = self.true_prices[(self.idx_ref-1):(self.idx_ref-1)+192]
 
-			# update index ref for next price grab
-			self.idx_ref = self.idx_ref + 168
+		# 	# update index ref for next price grab
+		# 	self.idx_ref = self.idx_ref + 168
+
+
+
+        # organise training data for next episode
+		if (self.idx_ref)+192 >= len(self.true_prices):
+			self.idx_ref = 1
+			# self.cycle_num = 0
+            
+		self.ep_prices = self.true_prices[(self.idx_ref-1):(self.idx_ref-1)+192]
+
+		# update index ref for next price grab
+		self.idx_ref = self.idx_ref + 168
+
+
+
+		# get forecasted prices if 'forecasting' true, use real prices until forecast horizon available
+		if self.price_track == 'forecasted' and self.idx_ref >= 360: # need to be able to predict the next 8-days
+			self.forecast_ep_prices = []
+			for idx in range((self.ts_len // 24) + 1):
+
+				# fetch time features for current date range
+				
+
+
+				da_inputs = torch.tensor(self.true_prices[self.forecast_index: self.forecast_index + 24], dtype=torch.float64)
+
+				self.forecast_ep_prices.append(self._get_da_prices(da_inputs).cpu().data.numpy())
+
+				self.forecast_index = self.forecast_index + 24
+
+				# self.ep_prices = self.forecast_ep_prices
+
+			print(self.true_prices.shape)			
+			print(self.forecast_ep_prices.shape)
+			exit()
+
+
+
+
+
 
 
 		print(f'INDEX: {self.idx_ref}')
