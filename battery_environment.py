@@ -14,6 +14,7 @@ from sklearn.preprocessing import MinMaxScaler
 from DA_ElectricityPrice import LSTMCNNModel
 from battery_degrade import BatteryDegradation
 from battery_degradation_func import calculate_degradation
+from time_features_func import time_engineering
 
 # T is the time period per episode, t is HH periods within T 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -56,6 +57,7 @@ class Battery(gym.Env):
 		self.idx_ref = 1
 		self.bug = False
 		self.true_prices = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2015_train.csv').iloc[:,-1]
+		self.input_dates = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2015_train.csv',header=0)
 		self.price_track = env_settings['price_track']
 		self.cycle_num = 0
 		self.forecast_index = 0 # index to keep track of forecasting horizon inputs
@@ -419,13 +421,18 @@ class Battery(gym.Env):
 		# get forecasted prices if 'forecasting' true, use real prices until forecast horizon available
 		if self.price_track == 'forecasted' and self.idx_ref >= 360: # need to be able to predict the next 8-days
 			self.forecast_ep_prices = []
+			self.forecast_time_feats = []
 			for idx in range((self.ts_len // 24) + 1):
 
 				# fetch time features for current date range
-				
-
+				time_features = time_engineering(self.input_dates[self.forecast_index: self.forecast_index + 24])
+				print(time_features.shape)
+				exit()
 
 				da_inputs = torch.tensor(self.true_prices[self.forecast_index: self.forecast_index + 24], dtype=torch.float64)
+
+				# concat time features with prev generation for model input
+				# model_input = np.concat()
 
 				self.forecast_ep_prices.append(self._get_da_prices(da_inputs).cpu().data.numpy())
 
