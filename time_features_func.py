@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
 
-
+from workalendar.europe import UnitedKingdom
+cal = UnitedKingdom()
 
 # helper fucntion to pass times data and retrieve features egnineering
 def time_engineering(input_times_df):
@@ -9,6 +10,10 @@ def time_engineering(input_times_df):
 	input: pandas dataframe with 'utc_timestamp' column in datetime format
 	output: numpy array of normalised / engineerd time features
 	'''
+	print(input_times_df)
+
+	# make sure in 
+	input_times_df['utc_timestamp'] = pd.to_datetime(input_times_df['utc_timestamp'],format='%d/%m/%Y %H:%M')
 
 	# data engineering
 	df_times = pd.DataFrame()
