@@ -19,6 +19,8 @@ from time_features_func import time_engineering
 # T is the time period per episode, t is HH periods within T 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+
+
 # create ESS environment
 class Battery(gym.Env):
 
@@ -47,7 +49,7 @@ class Battery(gym.Env):
 		self.ep_pwr = 0     							# total absolute power per each episode
 		self.ep_start_kWh_remain = self.cr     			# episode start charge
 		self.ep_end_kWh_remain = 0     					# episode end charge
-		self.kWh_cost = 75     							# battery cost per kWh
+		self.kWh_cost = 50     							# battery cost per kWh
 		self.price_ref = 0 	 							# counter to keep track of da price index
 		self.input_seq_size = 168
 		self.done = False
@@ -61,6 +63,7 @@ class Battery(gym.Env):
 		self.price_track = env_settings['price_track']
 		self.cycle_num = 0
 		self.forecast_index = 0 # index to keep track of forecasting horizon inputs
+		self.forecast_bool = False
 
 
 		# define parameter limits
@@ -117,15 +120,15 @@ class Battery(gym.Env):
 		# load scaler as used whilst training
 		# self.true_scaler = MinMaxScaler()
 		self.true_scaler= load(open(f'./Data/scalers/train_true_scaler.pkl', 'rb'))
-		self.true_prices = np.squeeze(self.true_scaler.fit_transform(np.expand_dims(self.true_prices,axis=-1)))
+		self.true_prices = np.squeeze(self.true_scaler.transform(np.expand_dims(self.true_prices,axis=-1)))
         
 
 		# self.ep_prices.append(self._get_da_prices(self.input_prices['X_train'][1]).numpy())
 		# self.ep_prices = np.concatenate(self.ep_prices)
 
 	def _next_soc(self, soc_t, efficiency, action, standby_loss):
-		e_ess = self.ep_start_kWh_remain
-		if np.around(soc_t, 2) == 0 and action == 0:
+		e_ess = self.cr
+		if np.around(soc_t, 4) == 0 and action == 0:
 			next_soc = soc_t
 		elif action < 0:
 			next_soc = soc_t - (1/e_ess) * efficiency * (action)  
@@ -218,8 +221,8 @@ class Battery(gym.Env):
 		efficiency = self.batt_deg.calc_efficiency(v_oc, r_tot, icur, action_kw)
 
 		# clip charge / discahrge relatiev to SoC limits
-		charge_lim = ((current_soc - 0.2) * self.ep_start_kWh_remain) / (efficiency * 1)
-		discharge_lim = ((current_soc - 1) * self.ep_start_kWh_remain) / (efficiency * 1)
+		charge_lim = ((current_soc - 0.2) * self.cr) / (efficiency * 1)
+		discharge_lim = ((current_soc - 1) * self.cr) / (efficiency * 1)
 
 		# clip action to ensure within limits
 		action_kWh_clipped = np.clip(action_kwh, discharge_lim,  charge_lim)
@@ -253,10 +256,10 @@ class Battery(gym.Env):
 		# da_prices = self._get_da_prices(self.input_prices['X_train'][self.ep + self.ts])
 
 		# reward function for current timestep
-		if self.price_track == 'forecasted': 
-			ts_price_MW = self.scaler_transform.inverse_transform(np.expand_dims(self.ep_prices[self.ts:self.ts+1],axis=-1))
-		if self.price_track == 'true': 
-			ts_price_MW = self.true_scaler.inverse_transform(np.expand_dims(self.ep_prices[self.ts:self.ts+1],axis=-1))
+		# if self.price_track == 'forecasted': 
+		# 	ts_price_MW = self.scaler_transform.inverse_transform(np.expand_dims(self.ep_prices[self.ts:self.ts+1],axis=-1))
+		# if self.price_track == 'true': 
+		ts_price_MW = self.true_scaler.inverse_transform(np.expand_dims(self.ep_prices[self.ts:self.ts+1],axis=-1))
 
 		ts_price_kW = ts_price_MW / 1000
 		action_MW_clipped = action_kWh_clipped / 1000
@@ -265,33 +268,36 @@ class Battery(gym.Env):
 		# ts_reward_1 =  np.squeeze(ts_price_kW * (action_kWh_clipped /  self.pr))
 		# ts_reward_2 =  self.alpha_d * (abs(action_kWh_clipped) / self.pr)
 		# ts_reward =  ts_reward_1 - ts_reward_2
-		ts_reward =  np.squeeze(ts_price_kW * action_kWh_clipped)
-		# ts_reward = np.squeeze((ts_price_kW * (action_kWh_clipped / self.pr)) - (self.alpha_d * (abs(action_kWh_clipped) / self.pr)))
+		# ts_reward =  np.squeeze(ts_price_kW * action_kWh_clipped)
+		ts_reward = np.squeeze((ts_price_kW * (action_kWh_clipped)) - (self.alpha_d * (abs(action_kWh_clipped))))
 		# ts_reward =  np.squeeze(ts_price_kW * action_kWh_clipped)
 
 		# collect power charge & discharge for episode
 		self.ep_pwr += abs(action_kWh_clipped)
 
 		# keep track of cycle number for degradation
-		self.cycle_num += (abs(action_kWh_clipped) / self.ep_start_kWh_remain) / 2
+		self.cycle_num += (abs(action_kWh_clipped) / self.cr) / 2
 
 		# print(f'day_num: {self.day_num}')
 		# print(f'ts_reward: {ts_reward}')
 		# print(f'action: {action_kw}')
-
-
-
-		
 
 		# if self.ep == 0:
 		# 	price_index_start += 1
 		# 	price_index_end += 1
 		# print(f'ts_int: {self.ts}')
 		# obs = np.append(self.ts / 24, next_soc)
-		observations = np.append(self.ep_prices[self.ts:self.ts+24],  np.around(next_soc,4))
+
+
+		if self.forecast_bool == True:
+			observations = np.append(self.forecast_ep_prices[self.ts:self.ts+24], np.around(next_soc,4))			
+		else:
+			observations = np.append(self.ep_prices[self.ts:self.ts+24], np.around(next_soc,4))	
+
 
 		if step == self.ts_len - 1:
 			print('_______________________________')
+			print('DONE')
 			# ts_reward +=  50
 			# self.ep_end_kWh = next_soc * self.cr
 			# self.ts -= 1
@@ -325,8 +331,8 @@ class Battery(gym.Env):
 
 		# print(f'price: {ts_price}')
 		# ts_cost = (ts_price_kW * (action_kWh_clipped / self.pr) - (self.alpha_d * (abs(action_kWh_clipped) / self.pr))
-		# ts_cost = np.squeeze((ts_price_kW * (action_kWh_clipped)) - (self.alpha_d * (abs(action_kWh_clipped))))
-		ts_cost = np.squeeze((ts_price_kW * (action_kWh_clipped)))
+		ts_cost = np.squeeze((ts_price_kW * (action_kWh_clipped)) - (self.alpha_d * (abs(action_kWh_clipped))))
+		# ts_cost = np.squeeze((ts_price_kW * (action_kWh_clipped)))
 
 		info = {'ts_cost': ts_cost,
 				'action_clipped': action_kWh_clipped / self.pr, # normalised for more convient graphing
@@ -350,6 +356,8 @@ class Battery(gym.Env):
 
 
 	def reset(self):
+		print('---------------------------------------------------------------')
+		# print(f'FORECAST_IDX: {self.forecast_index}')
 		# update final charge for episode
 		end_ep_capacity = calculate_degradation(self.cycle_num)
 		self.ep_end_kWh_remain = (end_ep_capacity/100) * self.cr
@@ -376,6 +384,9 @@ class Battery(gym.Env):
 		# print(f'day_num-----------------------------------------------------------------+=======: {self.day_num}')
 		# observations = np.append(self.ep_prices[self.ep + self.price_ref], self.soc)
 
+
+
+
 		# if self.price_track == 'forecasted':
 		# 	self.ep_prices = []
 		# 	for idx in range((self.ts_len // 24) + 1):
@@ -397,7 +408,7 @@ class Battery(gym.Env):
   #           # deal with reset during training
 		# 	if (self.idx_ref)+192 >= len(self.true_prices):
 		# 		self.idx_ref = 1
-		# 		# self.cycle_num = 0
+		# 		self.cycle_num = 0
                 
 		# 	self.ep_prices = self.true_prices[(self.idx_ref-1):(self.idx_ref-1)+192]
 
@@ -406,43 +417,65 @@ class Battery(gym.Env):
 
 
 
+
+
+
+
+		self.forecast_bool = False
+
+
         # organise training data for next episode
-		if (self.idx_ref)+192 >= len(self.true_prices):
+		if (self.idx_ref+192) >= len(self.true_prices):
 			self.idx_ref = 1
-			# self.cycle_num = 0
+			self.forecast_index = 0
+			self.cycle_num = 0
+
+		# if self.forecast_index+360 >= len(self.true_prices):
+		# 	self.forecast_index = 0
+		# 	self.idx_ref = 1
             
 		self.ep_prices = self.true_prices[(self.idx_ref-1):(self.idx_ref-1)+192]
 
-		# update index ref for next price grab
-		self.idx_ref = self.idx_ref + 168
-
-
 
 		# get forecasted prices if 'forecasting' true, use real prices until forecast horizon available
-		if self.price_track == 'forecasted' and self.idx_ref >= 360: # need to be able to predict the next 8-days
+		if self.price_track == 'forecasted' and self.idx_ref >= 168: # need to be able to predict the next 8-days
+			self.forecast_bool = True
 			self.forecast_ep_prices = []
 			self.forecast_time_feats = []
+
 			for idx in range((self.ts_len // 24) + 1):
 
 				# fetch time features for current date range
-				time_features = time_engineering(self.input_dates[self.forecast_index: self.forecast_index + 24])
-				print(time_features.shape)
-				exit()
+				time_features = torch.tensor(time_engineering(self.input_dates[self.forecast_index: self.forecast_index + 168]), dtype=torch.float64)
+				# print(f'time_features: {torch.isnan(time_features).any()}')
+				# print(time_features)
 
-				da_inputs = torch.tensor(self.true_prices[self.forecast_index: self.forecast_index + 24], dtype=torch.float64)
+				da_inputs = torch.tensor(np.expand_dims(self.true_prices[self.forecast_index: self.forecast_index + 168], axis=-1), dtype=torch.float64)
+				# print(f'DA_inputs: {torch.isnan(da_inputs).any()}')
 
 				# concat time features with prev generation for model input
-				# model_input = np.concat()
+				model_input = torch.cat((da_inputs, time_features), axis=-1)
 
-				self.forecast_ep_prices.append(self._get_da_prices(da_inputs).cpu().data.numpy())
+				# print(f'MODEL_INPUT: {model_input.shape}')
+				# print(torch.isnan(model_input).any())
+
+				self.forecast_ep_prices.append(self._get_da_prices(model_input).cpu().data.numpy())
 
 				self.forecast_index = self.forecast_index + 24
+				# print(f'FORECAST_IDX={self.forecast_index}')
 
 				# self.ep_prices = self.forecast_ep_prices
 
-			print(self.true_prices.shape)			
-			print(self.forecast_ep_prices.shape)
-			exit()
+			# combine prices into array
+			self.forecast_ep_prices = np.concatenate(self.forecast_ep_prices)
+			self.forecast_index = self.forecast_index - 24
+
+			# plt.plot(self.forecast_ep_prices)
+			# plt.plot(self.ep_prices)
+			# plt.show()
+
+		# update index ref for next price grab
+		self.idx_ref = self.idx_ref + 168
 
 
 
@@ -453,8 +486,11 @@ class Battery(gym.Env):
 		print(f'INDEX: {self.idx_ref}')
 		self.ts = 0
 
-		
-		observations = np.append(self.ep_prices[self.ts:self.ts+24], np.around(self.soc,4))
+		if self.forecast_bool == True:
+			observations = np.append(self.forecast_ep_prices[self.ts:self.ts+24], np.around(self.soc,4))			
+		else:
+			observations = np.append(self.ep_prices[self.ts:self.ts+24], np.around(self.soc,4))	
+
 
 		# if self.ts % 168 == 0:
 		# 	self.ts = 0
