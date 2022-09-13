@@ -1,5 +1,5 @@
 
-function timeseries_graph(file) {
+function timeseries_graph(file, battery_capacity, battery_power) {
   console.log("ts graph loaded") }
 
 var filter_date = new Date(2015, 0, 1)
@@ -112,7 +112,7 @@ $("#calendar-tomorrow").flatpickr({
             d3.select('.x.axis_dates_main_ticks .tick line:first-child').remove()
 
             // update profit text
-            charg_dis_prices = newDataDatePath.map(function(d) {return d.test_data * d.action })
+            charg_dis_prices = newDataDatePath.map(function(d) {return d.test_data * d.action * battery_power})
             profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
             profit_label.text("Profit 💰:" + formatter.format(profit))
 
@@ -137,9 +137,11 @@ current_width = parseInt(d3.select('#test').style('width'), 10)
 if (current_width <= 625) {
   width = parseInt(d3.select('#test').style('width'), 10) - 85
   var margin = {top:10, right:25, bottom:0, left:85}
+  height = 200 - margin.top - margin.bottom;
 } else {
   width = parseInt(d3.select('#test').style('width'), 10) 
   var margin = {top:10, right:25, bottom:0, left:50}
+  height = 240 - margin.top - margin.bottom;
 }
 
 const intial_width = width
@@ -147,7 +149,7 @@ const intial_width = width
 
 // var margin = {top:10, right:25, bottom:0, left:50},
     // width = width - margin.left - margin.right + 75
-    height = 275 - margin.top - margin.bottom;
+    
 
 
 var aspectRatio= '16:9';
@@ -158,7 +160,7 @@ var viewBox = '0 0 ' + aspectRatio.split(':').join(' ');
 var svg = d3.select("#vis")
     .append("svg")
     .attr("width", width + margin.right + margin.left)
-    .attr("height", height - 220)  
+    .attr("height", 50)  
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
@@ -357,8 +359,8 @@ svg_100.selectAll("line.horizontalGrid").data(y_input.ticks(4)).enter()
         .attr("class", "horizontalGrid")
         .attr("x1", 0)
         .attr("x2", width)
-        .attr("y1", function(d){ return y_input(d) + 27.5;})
-        .attr("y2", function(d){ return y_input(d) + 27.5;})
+        .attr("y1", function(d){ return y_input(d) + 23.5;})
+        .attr("y2", function(d){ return y_input(d) + 23.5;})
         .attr("fill", "none")
         .attr("shape-rendering", "crispEdges")
         .attr("stroke", "grey")
@@ -504,21 +506,7 @@ var handle = slider.insert("circle", ".track-overlay")
 //     .attr("font-size", "20")
 //     .attr("transform", "translate(0," + (-25) + ")")
 
-if (intial_width <= 625) {
-var profit_label = svg_100.append("g").append("text")  
-    .attr("class", "profit_label")
-    .attr("font-size", "0.6em")
-    // .text("Profit 💰: this is a test ")
-    // .attr("transform", "translate(" + (width - 125)  + "," + (height + 20) + ")")
-    profit_label.attr("transform", "translate(" + ((width /2)-25) + "," + (0) + ")")
-} else {
-var profit_label = svg_100.append("g").append("text")  
-    .attr("class", "profit_label")
-    .attr("font-size", "0.7em")
-    // .text("Profit 💰: this is a test ")
-    // .attr("transform", "translate(" + (width - 125)  + "," + (height + 20) + ")")
-    .attr("transform", "translate(" + (width - 100) + "," + (height - 5) + ")")
-}
+
 
 var info_line_text = svg_100.append("g").append("text")  
     .attr("class", "info_line_text")
@@ -604,6 +592,8 @@ function getSum(total, num) {
 }
 
 
+
+
 // reload data
 function reload_data() {
 
@@ -622,6 +612,8 @@ d3.csv(file, prepare, function(data) {
 
 })
 }
+
+
 
 
 
@@ -751,8 +743,8 @@ function info_line(cur_pos=null) {
     for (var i = 0; i < dataset_update.length; i++) {
         // console.log(dataset[i])
         var coord_id = dataset_update[i]['id'];
-        var coord_test_data1 = dataset_update[i]['action'];
-        var coord_test_data2 = dataset_update[i]['soc'];
+        var coord_test_data1 = dataset_update[i]['action'] * 10; // 10MW battery power (baseline)
+        var coord_test_data2 = dataset_update[i]['soc'] * 20; // 20MWh battery capacity (baseline)
         var coord_test_data3 = dataset_update[i]['date'];
         var coord_test_data4 = dataset_update[i]['test_data'];
         // console.log(dataset[i]['test_data'])
@@ -945,14 +937,21 @@ d3.csv(file, prepare, function(data) {
    console.log(d3.extent(datanew, function(d){return d.date;}))
 
 
+
+
   // drawPlot(dataset);
   draw_price_line(datanew);
   draw_bar_soc(datanew);
   draw_bar_act(datanew);
 
-  charg_dis_prices = datanew.map(function(d) {return d.test_data * d.action })
+
+  charg_dis_prices = datanew.map(function(d) {return d.test_data * d.action * battery_power})
   profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
   profit_label.text("Profit 💰:" + formatter.format(profit))
+  // svg_100.select("profit_label").text("Profit111 💰:" + formatter.format(profit))
+
+
+
 
   start_date = new Date(2015, 0, 1)
   newDataDatePath_int = dataset.filter(function(d) {
@@ -1067,7 +1066,7 @@ d3.csv(file, prepare, function(data) {
       .text("Price (£/MW)")
       .attr("fill","grey")
       .attr('transform', 'translate(' + 0 + ',' + ((height / 2) + 25) + ')rotate(-90)')
-      .style("font-size", "0.75em")
+      .style("font-size", "0.65em")
   } else {
   svg_100.append("text")
       .attr("text-anchor", "start")
@@ -1076,7 +1075,7 @@ d3.csv(file, prepare, function(data) {
       .text("Price (£/MW)")
       .attr("fill","grey")
       .attr('transform', 'translate(' + 0 + ',' + ((height / 2) + 25) + ')rotate(-90)')
-      .style("font-size", "0.75em")
+      .style("font-size", "0.65em")
   }
 
   // primary x-axis label
@@ -1088,7 +1087,7 @@ d3.csv(file, prepare, function(data) {
       .text("SoC & Normalised Action")
       .attr("fill","grey")
       .attr('transform', 'rotate(-90)')
-      .style("font-size", "0.75em")
+      .style("font-size", "0.65em")
       // .attr('transform', 'translate(' + (width + 75) + ',' + ((height / 2) + 65) + ')rotate(-90)')
 
 
@@ -1276,6 +1275,23 @@ function draw_price_line(data) {
 }
 
 
+// add profit label - place here to ensure in front of Action bars
+if (intial_width <= 625) {
+var profit_label = svg_100.append("g").append("text")  
+    .attr("class", "profit_label")
+    .attr("font-size", "0.6em")
+    // .text("Profit 💰: this is a test ")
+    // .attr("transform", "translate(" + (width - 125)  + "," + (height + 20) + ")")
+    profit_label.attr("transform", "translate(" + ((width /2)-25) + "," + (0) + ")")
+} else {
+var profit_label = svg_100.append("g").append("text")  
+    .attr("class", "profit_label")
+    .attr("font-size", "0.7em")
+    // .text("Profit 💰: this is a test ")
+    // .attr("transform", "translate(" + (width - 125)  + "," + (height + 20) + ")")
+    .attr("transform", "translate(" + (width - 100) + "," + (height - 5) + ")")
+}
+
 
 
 function draw_bar_soc(bar_data, startDate = new Date(2015, 0, 1), endDate = new Date(2015, 0, 8)) {
@@ -1322,6 +1338,8 @@ function draw_bar_soc(bar_data, startDate = new Date(2015, 0, 1), endDate = new 
         // .attr("height", function(d) { return height/2 - y_bar(d.soc); })
 
   locations.exit().remove();
+
+
 
 }
 
@@ -1417,7 +1435,7 @@ function soc_bar_update(h) {
   }
 
 
-  charg_dis_prices = newData.map(function(d) {return d.test_data * d.action })
+  charg_dis_prices = newData.map(function(d) {return d.test_data * d.action * battery_power})
   profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
   profit_label.text("Profit 💰:" + formatter.format(profit))
 
@@ -1429,50 +1447,7 @@ function soc_bar_update(h) {
 
 
 
-// create legend
-var keys = ["SoC", "Action", "Price"]
 
-var color = ['#457b9d','#f79256', "#444444"]
-
-var color = d3.scaleOrdinal()
-  .domain(keys)
-  .range(color);
-
-
-
-var size = 6
-svg_100.selectAll("mydots")
-  .data(keys)
-  .enter()
-  .append("rect")
-    .attr('class', 'legend_boxes')
-    .attr("x", function(d,i){ return ((width/2)-55) + i*(size+50)})
-    .attr("y",  function(d, i){ if (i==2) {
-      return height -9 } else {
-    return height -10}})
-    .attr("width",  function(d, i){ if (i==2) {
-      return size +3 } else {
-    return size}})
-    .attr("height",  function(d, i){ if (i==2) {
-      return size -3 } else {
-    return size}})
-    .attr("opacity", "0.6")
-    .style("fill", function(d){ return color(d)})
-
-
-
-leg_labels = svg_100.selectAll("mylabels")
-  .data(keys)
-  .enter()
-  .append("text")
-    .attr('class', 'legend_labels')
-    .attr("x", function(d,i){ return ((width/2)-45) + i*(size+50)})
-    .attr("y", height-6.5)
-    .style("fill", function(d){ return color(d)})
-    .text(function(d){ return d})
-    .attr("text-anchor", "left")
-    .attr('font-size', 10)
-    .style("alignment-baseline", "middle")
 
 
 
@@ -1779,7 +1754,50 @@ function update_offset(offset, resize=false) {
 
 
 
+// create legend
+var keys = ["SoC", "Action", "Price"]
 
+var color = ['#457b9d','#f79256', "#444444"]
+
+var color = d3.scaleOrdinal()
+  .domain(keys)
+  .range(color);
+
+
+
+var size = 6
+svg_100.selectAll("mydots")
+  .data(keys)
+  .enter()
+  .append("rect")
+    .attr('class', 'legend_boxes')
+    .attr("x", function(d,i){ return ((width/2)-55) + i*(size+50)})
+    .attr("y",  function(d, i){ if (i==2) {
+      return height -9 } else {
+    return height -10}})
+    .attr("width",  function(d, i){ if (i==2) {
+      return size +3 } else {
+    return size}})
+    .attr("height",  function(d, i){ if (i==2) {
+      return size -3 } else {
+    return size}})
+    .attr("opacity", "0.6")
+    .style("fill", function(d){ return color(d)})
+
+
+
+leg_labels = svg_100.selectAll("mylabels")
+  .data(keys)
+  .enter()
+  .append("text")
+    .attr('class', 'legend_labels')
+    .attr("x", function(d,i){ return ((width/2)-45) + i*(size+50)})
+    .attr("y", height-6.5)
+    .style("fill", function(d){ return color(d)})
+    .text(function(d){ return d})
+    .attr("text-anchor", "left")
+    .attr('font-size', 10)
+    .style("alignment-baseline", "middle")
 
 
 
