@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from pickle import load 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -46,6 +47,25 @@ ax.tick_params(axis='x', labelsize= 8)
 ax.set_ylabel('Profit (£)', fontsize=9, style='italic', weight='bold')
 ax.set_xlabel('Hour', fontsize=9, style='italic', weight='bold')
 ax.grid(alpha=0.3)
+
+
+ax.set_xlim([0, 8760])
+ax.tick_params(direction="out", length=2.0)
+ax.set_xticks(np.arange(0, 8760, 1000))
+
+handle1, label1 = ax.get_legend_handles_labels()
+
+leg = ax.legend(handle1, label1, loc="lower right", fontsize=7, frameon=True)
+leg.set_zorder(5)
+
+for line in leg.get_lines():
+	line.set_linewidth(1.5)
+
+frame = leg.get_frame()
+frame.set_facecolor('white')
+frame.set_edgecolor('white')
+
+# plt.savefig('foo2.png', bbox_inches='tight', transparent=True)
 
 
 # add milp to plot
