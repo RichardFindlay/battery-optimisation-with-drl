@@ -2,13 +2,14 @@ import pandas as pd
 import numpy as np
 from pickle import load 
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import seaborn as sns
 
 
 # comparison plot between cumlative profits over test year
 
 # declare figure
-plt.figure(figsize=(13, 5))
+plt.figure(figsize=(12, 3))
 # set graph style
 plt.style.use(['seaborn-whitegrid'])
 
@@ -25,12 +26,12 @@ cumsum_milp = cumsum_milp['cumlative_profit']
 legend_ls = ['Vanilla', 'Double Dueling', 'Noisy Network', 'MILP']
 
 # colours list
-colours = ['dodgerblue', '#f08080', '#f8cf01', '#6e6e6e']
+colours = ['#f8cf01','#f8a87d', '#96b2c6', '#6e6e6e']
 # colours = ['#6e6e6e', '#457b9d', '#f79256', '#f08080']
 
 # plot cumlative profits for milp and DQN together 
 for idx, dqn_mod in enumerate(cumsum_dqn.keys()):
-	plt.plot(cumsum_dqn[dqn_mod], color=colours[idx], linewidth=2.0)
+	plt.plot(cumsum_dqn[dqn_mod], color=colours[idx], linewidth=1.75)
 
 # intialise plot axis
 ax = plt.subplot()
@@ -47,6 +48,7 @@ ax.tick_params(axis='y', labelsize= 8)
 ax.tick_params(axis='x', labelsize= 8)
 ax.set_ylabel('Profit (£)', fontsize=9, style='italic', weight='bold')
 ax.set_xlabel('Hour', fontsize=9, style='italic', weight='bold')
+ax.yaxis.set_major_formatter(mpl.ticker.StrMethodFormatter('{x:,.0f}'))
 ax.grid(alpha=0.3)
 
 ax.set_xlim([0, 8760])
@@ -63,8 +65,8 @@ frame.set_facecolor('white')
 frame.set_edgecolor('white')
 
 # add milp to plot
-plt.plot(cumsum_milp, color = colours[-1], linewidth=2.0)
+plt.plot(cumsum_milp, color = colours[-1], linewidth=1.75)
 plt.legend(legend_ls, fontsize=8)
 
-plt.savefig('cumlative_profit_comparison.png', bbox_inches='tight', transparent=True)
+plt.savefig('cumlative_profit_comparison.png', bbox_inches='tight', transparent=True, dpi=300)
 plt.show()
