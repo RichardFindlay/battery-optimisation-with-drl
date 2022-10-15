@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 
 from DA_ElectricityPrice import LSTMCNNModel
 
+
+
+
 # load model
 PATH = './Models/da_price_prediction.pt'
 
@@ -27,27 +30,22 @@ test_load = open(f"./Data/processed_data/{data_set}_data_336hr_in_24hr_out_unshu
 test_data = load(test_load)
 test_load.close()
 
-
 print(test_data.keys())
 
 print(test_data['X_test'].shape)
 
 # print(test_data['y_train_times'])
 
-
-
-
 model.eval()
-loss = 0 
-
-
-
+loss = 20 
 
 print(test_data.keys())
 
 inputs = np.moveaxis(test_data[f'X_{data_set}'], -1, 1)
 
 inputs = torch.tensor(inputs, dtype=torch.float64)
+
+print(inputs.shape)
 
 
 with torch.no_grad(): 
@@ -57,25 +55,14 @@ with torch.no_grad():
 
 y_true = test_data[f'y_{data_set}']
 
-print(test_data[f'X_{data_set}_times'][100])
-print('*********************************')
-print(test_data[f'y_{data_set}_times'][100])
-print(test_data[f'X_{data_set}'].shape)
-print(y_true.shape)
-print(prediction.shape)
 
-idx = 190
-plt.plot(np.squeeze(prediction[idx:idx+7]).flatten(), label="pred")
-plt.plot(np.squeeze(y_true[idx:idx+7,:,0]).flatten(), label="true")
-plt.legend()
-plt.show()
 
 
 y_true = np.squeeze(y_true)
 prediction = np.squeeze(prediction)
 
 # load scaler 
-scaler = load(open(f'./Data/processed_data/da_price_scaler_test.pkl', 'rb'))
+scaler = load(open(f'./Data/processed_data/da_price_scaler.pkl', 'rb'))
 
 
 test_len = len(y_true)
@@ -88,6 +75,18 @@ y_true = scaler.inverse_transform(y_true.reshape(-1,1)).reshape(test_len, output
 mae = mean_absolute_error(y_true, prediction)
 mape = mean_absolute_percentage_error(y_true, prediction)
 rmse = mean_squared_error(y_true, prediction, squared=False)
+
+
+idx = 60
+plt.plot(np.squeeze(prediction[idx:idx+7]).flatten(), label="pred")
+plt.plot(np.squeeze(y_true[idx:idx+7,:]).flatten(), label="true")
+plt.legend()
+plt.show()
+
+
+
+
+
 
 
 print(mae)
@@ -126,15 +125,6 @@ print(prediction.shape)
 correlation_analysis(y_true, prediction)
 
 
-
-
-# with torch.no_grad():
-# 	for X in test_data['X_test']:
-# 		# a = np.expand_dims(X,axis=0)
-# 		x = torch.tensor(np.expand_dims(X,axis=0), dtype=torch.float64)
-# 		prediction = model(x.float())
-# 		loss += loss_fn(prediction, y.float())
-# 	print(f'loss: {loss}')
 
 
 
