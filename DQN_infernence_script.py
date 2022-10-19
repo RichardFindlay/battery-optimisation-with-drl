@@ -15,6 +15,8 @@ from DQN_pytorch_Dueling import DQN_Agent_double_duel
 
 
 
+import warnings
+warnings.filterwarnings('ignore')
 
 # declare environment dictionary
 env_settings = {
@@ -29,10 +31,10 @@ env_settings = {
     'train_data_path': './Data/processed_data/train_data_336hr_in_24hr_out_unshuffled.pkl', # Path to trian data
     'test_data_path': './Data/processed_data/test_data_336hr_in_24hr_out_unshuffled.pkl',	 # Path to test data
     'torch_model': './Models/da_price_prediction.pt',	 # relevant to current file dir
-    'price_track': 'true' # forecasted / true
+    'price_track': 'forecasted' # forecasted / true
 }
 
-test_size = 50 # number of weeks to run test for
+test_size = 52 # number of weeks to run test for
 time_range = 168
 
 state_size = (25)
@@ -43,11 +45,12 @@ buffer_size = int(1e5)
 batch_size = 32 # 64 best
 gamma = 0.99
 # tau = 1e-3
-tau = 1
-update = 10000 # 168 best also 100 for hard up date 
+tau = 0.001
+update = 16 # 168 best also 100 for hard up date 
 seed = 100
 
 # list all dqn variations
+dqn_types = ['vanilla', 'double_dueling', 'NN', 'double_dueling_NN']
 dqn_types = ['vanilla', 'double_dueling', 'NN']
 
 # store profits for each model in dicitonary
@@ -60,10 +63,13 @@ timeseries_performance = {}
 for model in dqn_types:
 
 	# instaniate DQN agent
-	if model == "double_dueling":
-		dqn_agent = DQN_Agent_double_duel(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed, soft_update=False, qnet_type='vanilla')
+	if model == "double_dueling" or model == "double_dueling_NN":
+		print('-----------------')
+		print(model)
+		dqn_agent = DQN_Agent_double_duel(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed, soft_update=True, qnet_type=model)
 	else:
-		dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed, soft_update=False, qnet_type=model)        
+		print(model)
+		dqn_agent = DQN_Agent(state_size, action_size, learning_rate, buffer_size, gamma, tau, batch_size, seed, soft_update=True, qnet_type=model)        
 
 	dqn_agent.qnet.load_state_dict(torch.load(f'./trained_models/dqn_{model}.pth', map_location=torch.device('cpu')))
 
@@ -88,8 +94,8 @@ for model in dqn_types:
 
 			action = dqn_agent.action(cur_state)
 
-			socs.append(cur_state[-1])
 			hour.append(idx)
+			socs.append(cur_state[-1])
 
 			new_state, reward, done, info = env.step(cur_state, action, step)
 
@@ -116,10 +122,16 @@ for idx, model in enumerate(dqn_types):
 plt.legend(loc="lower right")
 plt.show()
 
+print(timeseries_performance.keys())
+
 # save timeseries performance df via pickle
-with open('./results/timeseries_results.pkl', 'wb') as timeseries_results:
+with open('./results/dqn_timeseries_results_forecasted.pkl', 'wb') as timeseries_results:
 	dump(timeseries_performance, timeseries_results)
-# timeseries_performance.to_pickle("models_timeseries_performance_df.pkl") 
+
+# save cumlative profits for each dqn model
+with open('./results/dqn_cumlativeprofit_results_forecasted.pkl', 'wb') as profits:
+	dump(dqn_model_profits, profits)
+
 
 # timeseries_performance['double_dueling'].to_clipboard()
 
