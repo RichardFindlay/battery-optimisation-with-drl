@@ -77,14 +77,60 @@ mape = mean_absolute_percentage_error(y_true, prediction)
 rmse = mean_squared_error(y_true, prediction, squared=False)
 
 
-idx = 60
-plt.plot(np.squeeze(prediction[idx:idx+7]).flatten(), label="pred")
-plt.plot(np.squeeze(y_true[idx:idx+7,:]).flatten(), label="true")
-plt.legend()
+# declare figure
+plt.figure(figsize=(12, 3))
+# set graph style
+plt.style.use(['seaborn-whitegrid'])
+
+# intialise plot axis
+ax = plt.subplot()
+
+colours = ['#f8cf01','#f8a87d', '#96b2c6', '#6e6e6e']
+
+idx = 20
+plt.plot(np.squeeze(prediction[idx:idx+7]).flatten(), label="Prediction", color=colours[1], linewidth=1.5)
+plt.plot(np.squeeze(y_true[idx:idx+7,:]).flatten(), label="True",  color=colours[2], linewidth=1.5)
+# plt.legend()
+# plt.show()
+
+# apply graph formatting
+ax.grid(True, alpha=0.6, which="both")
+ax.spines['bottom'].set_color('black')  
+ax.spines['top'].set_color('black')
+ax.spines['left'].set_color('black')
+ax.spines['right'].set_color('black')
+ax.tick_params(direction="out", length=2.0)
+
+ax.tick_params(axis='y', labelsize= 8)
+ax.tick_params(axis='x', labelsize= 8)
+ax.set_ylabel('Price (£/MWh)', fontsize=9, style='italic', weight='bold')
+ax.set_xlabel('Hour', fontsize=9, style='italic', weight='bold')
+ax.grid(alpha=0.3)
+
+ax.set_xlim([0, 168])
+ax.tick_params(direction="out", length=2.0)
+ax.set_xticks(np.arange(0, 169, 24))
+
+# ax.set_ylim([-2, 4])
+ax.tick_params(direction="out", length=2.0)
+# ax.set_yticks(np.arange(-2, 4.1, 1))
+
+handle1, label1 = ax.get_legend_handles_labels()
+
+leg = ax.legend(handle1, label1, loc="upper right", fontsize=7, frameon=True)
+leg.set_zorder(5)
+
+frame = leg.get_frame()
+frame.set_facecolor('white')
+frame.set_edgecolor('white')
+# plt.legend(dqn_types, fontsize=8)
+
+plt.savefig('pytorch_model_performance.png', bbox_inches='tight', transparent=True, dpi=300)
 plt.show()
 
 
 
+exit()
 
 
 
