@@ -78,46 +78,57 @@ rmse = mean_squared_error(y_true, prediction, squared=False)
 
 
 # declare figure
-plt.figure(figsize=(12, 3))
+fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(12, 5))
+# plt.figure(figsize=(12, 3))
 # set graph style
 plt.style.use(['seaborn-whitegrid'])
 
 # intialise plot axis
-ax = plt.subplot()
-
+# ax = plt.subplot()
 colours = ['#f8cf01','#f8a87d', '#96b2c6', '#6e6e6e']
 
+# summer prediction example
 idx = 20
-plt.plot(np.squeeze(prediction[idx:idx+7]).flatten(), label="Prediction", color=colours[1], linewidth=1.5)
-plt.plot(np.squeeze(y_true[idx:idx+7,:]).flatten(), label="True",  color=colours[2], linewidth=1.5)
-# plt.legend()
-# plt.show()
+axes[0].plot(np.squeeze(prediction[idx:idx+7]).flatten(), label="Prediction", color=colours[1], linewidth=1.2)
+axes[0].plot(np.squeeze(y_true[idx:idx+7,:]).flatten(), label="True",  color=colours[2], linewidth=1.2)
 
-# apply graph formatting
-ax.grid(True, alpha=0.6, which="both")
-ax.spines['bottom'].set_color('black')  
-ax.spines['top'].set_color('black')
-ax.spines['left'].set_color('black')
-ax.spines['right'].set_color('black')
-ax.tick_params(direction="out", length=2.0)
+# summer prediction example
+idx = 250
+axes[1].plot(np.squeeze(prediction[idx:idx+7]).flatten(), label="Prediction", color=colours[1], linewidth=1.2)
+axes[1].plot(np.squeeze(y_true[idx:idx+7,:]).flatten(), label="True",  color=colours[2], linewidth=1.2)
 
-ax.tick_params(axis='y', labelsize= 8)
-ax.tick_params(axis='x', labelsize= 8)
-ax.set_ylabel('Price (£/MWh)', fontsize=9, style='italic', weight='bold')
-ax.set_xlabel('Hour', fontsize=9, style='italic', weight='bold')
-ax.grid(alpha=0.3)
 
-ax.set_xlim([0, 168])
-ax.tick_params(direction="out", length=2.0)
-ax.set_xticks(np.arange(0, 169, 24))
+# helper function to format axes
+def axis_format(axis):
+	axis.grid(True, alpha=0.6, which="both")
+	axis.spines['bottom'].set_color('black')  
+	axis.spines['top'].set_color('black')
+	axis.spines['left'].set_color('black')
+	axis.spines['right'].set_color('black')
+	axis.tick_params(direction="out", length=2.0)
 
-# ax.set_ylim([-2, 4])
-ax.tick_params(direction="out", length=2.0)
-# ax.set_yticks(np.arange(-2, 4.1, 1))
+	axis.tick_params(axis='y', labelsize= 8)
+	axis.tick_params(axis='x', labelsize= 8)
+	axis.set_ylabel('Price (£/MWh)', fontsize=9, style='italic', weight='bold')
+	axis.set_xlabel('Hour', fontsize=9, style='italic', weight='bold')
+	axis.grid(alpha=0.3)
 
-handle1, label1 = ax.get_legend_handles_labels()
+	axis.set_xlim([0, 168])
+	axis.set_ylim([0, 200])
+	axis.tick_params(direction="out", length=2.0)
+	axis.set_xticks(np.arange(0, 169, 24))
 
-leg = ax.legend(handle1, label1, loc="upper right", fontsize=7, frameon=True)
+
+
+axis_format(axes[0])
+axis_format(axes[1])
+
+
+
+
+handle1, label1 = axes[0].get_legend_handles_labels()
+
+leg = axes[1].legend(handle1, label1, loc="lower right", fontsize=7, frameon=True)
 leg.set_zorder(5)
 
 frame = leg.get_frame()
@@ -125,8 +136,17 @@ frame.set_facecolor('white')
 frame.set_edgecolor('white')
 # plt.legend(dqn_types, fontsize=8)
 
+
+# apply additional formatting
+axes[0].set_xticklabels([])
+axes[0].set_xlabel("")
+
+axes[0].set_title("w/c 20-06-22", fontsize=9, weight="bold")
+axes[1].set_title("w/c 20-12-22", fontsize=9, weight="bold")
+
 plt.savefig('pytorch_model_performance.png', bbox_inches='tight', transparent=True, dpi=300)
 plt.show()
+
 
 
 

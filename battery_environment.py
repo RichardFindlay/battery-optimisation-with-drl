@@ -58,8 +58,8 @@ class Battery(gym.Env):
 		self.game_over = False
 		self.idx_ref = 1
 		self.bug = False
-		self.true_prices = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2015_train.csv').iloc[:,-1]
-		self.input_dates = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2015_train.csv',header=0)
+		self.true_prices = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2018_train.csv').iloc[:,-1]
+		self.input_dates = pd.read_csv('./Data/N2EX_UK_DA_Auction_Hourly_Prices_2018_train.csv',header=0)
 		self.price_track = env_settings['price_track']
 		self.cycle_num = 0
 		self.forecast_index = 0 # index to keep track of forecasting horizon inputs
@@ -128,7 +128,7 @@ class Battery(gym.Env):
 
 	def _next_soc(self, soc_t, efficiency, action, standby_loss):
 		e_ess = self.cr
-		if np.around(soc_t, 4) == 0 and action == 0:
+		if np.around(soc_t, 2) == 0 and action == 0:
 			next_soc = soc_t
 		elif action < 0:
 			next_soc = soc_t - (1/e_ess) * efficiency * (action)  
@@ -269,8 +269,8 @@ class Battery(gym.Env):
 		# ts_reward_2 =  self.alpha_d * (abs(action_kWh_clipped) / self.pr)
 		# ts_reward =  ts_reward_1 - ts_reward_2
 		# ts_reward =  np.squeeze(ts_price_kW * action_kWh_clipped)
-		ts_reward = np.squeeze((ts_price_kW * (action_kWh_clipped)) - (self.alpha_d * (abs(action_kWh_clipped))))
-		# ts_reward =  np.squeeze(ts_price_kW * action_kWh_clipped)
+		# ts_reward = np.squeeze((ts_price_kW * (action_kWh_clipped)) - (self.alpha_d * (abs(action_kWh_clipped))))
+		ts_reward =  np.squeeze(ts_price_kW * action_kWh_clipped)
 
 		# collect power charge & discharge for episode
 		self.ep_pwr += abs(action_kWh_clipped)
@@ -375,6 +375,7 @@ class Battery(gym.Env):
 		# assume battery refreshed after 4000 cycles
 		if self.cycle_num >= 4000:      
 			self.cycle_num = 0
+			# self._degrade_coeff()
 
 		if self.game_over == True:
 			self.soc = 0.5
