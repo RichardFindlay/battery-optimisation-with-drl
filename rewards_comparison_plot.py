@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from pickle import load
 
 # DQN type list
-dqn_types = ['vanilla', 'double_dueling', 'NN']
+dqn_types = ['vanilla', 'double_dueling', 'noisy network']
 
 # empty dictionary for rewards per model
 model_rewards = {}
@@ -39,7 +39,7 @@ ax = plt.subplot()
 # plot average rewards
 for idx, model in enumerate(dqn_types):
 	print(model)
-	ax.plot(model_rewards_av[model], label=f'{model} (average)', color=colours[idx], linewidth=1.75, alpha=0.8)
+	ax.plot(model_rewards_av[model], label=f'{model}', color=colours[idx], linewidth=1.75, alpha=0.8)
 
 # apply graph formatting
 ax.grid(True, alpha=0.6, which="both")
