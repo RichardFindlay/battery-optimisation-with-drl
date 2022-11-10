@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from scipy import interpolate
 from matplotlib.ticker import FormatStrFormatter
+from matplotlib.colors import ListedColormap
+from matplotlib import cm
 
 battery_parameters = {
 	'a_0': -0.852, 'a_1': 63.867, 'a_2': 3.6297, 'a_3': 0.559, 'a_4': 0.51, 'a_5': 0.508,
@@ -55,6 +57,40 @@ def calc_efficiency(v_oc, r_tot, icur, p_r):
 	print(f'efficiency: {efficiency}')
 	return efficiency
 
+viridis = cm.get_cmap('viridis', 12)
+print(viridis)
+print(viridis.colors * 256)
+
+new_colors = [(0.5859375, 0.6953125, 0.7734375, 1), (0.6328125, 0.69140625, 0.73828125, 1), (0.6875, 0.68359375, 0.69921875, 1),
+				(0.734375, 0.6796875, 0.6640625, 1), (0.7890625, 0.671875, 0.625, 1), (0.8359375, 0.66796875, 0.58984375, 1),
+				(0.89453125, 0.6640625, 0.54296875, 1), (0.96875, 0.65625, 0.48828125, 1), (0.96875, 0.69140625, 0.375, 1),
+				(0.96875, 0.73828125, 0.23046875, 1), (0.96875, 0.7734375, 0.1171875, 1), (0.96875, 0.80859375, 0.00390625, 1)]
+
+
+ListedColormap_ = ListedColormap(new_colors)
+print(ListedColormap_)
+
+inbetween_color_amount = 10
+
+# the 10 is from the original 10 colors, the 4 is for R, G, B, A
+newcolvals = np.zeros(shape=(12 * (inbetween_color_amount) - (inbetween_color_amount - 1), 4))
+
+colvals = new_colors
+
+# add first one already
+newcolvals[0] = colvals[0]
+
+for i, (rgba1, rgba2) in enumerate(zip(colvals[:-1], np.roll(colvals, -1, axis=0)[:-1])):
+    for j, (p1, p2) in enumerate(zip(rgba1, rgba2)):
+        flow = np.linspace(p1, p2, (inbetween_color_amount + 1))
+        # discard first 1 since we already have it from previous iteration
+        flow = flow[1:]
+        newcolvals[ i * (inbetween_color_amount) + 1 : (i + 1) * (inbetween_color_amount) + 1, j] = flow
+    
+print(newcolvals)
+
+ListedColormap_ = ListedColormap(newcolvals)
+
 
 
 soc_all = np.linspace(0,1,220)
@@ -100,8 +136,10 @@ efficiency_tot_charge = np.clip(efficiency_tot_charge, 0.95, 1.0)
 fig, (ax1, ax2) = plt.subplots(1,2, subplot_kw={"projection": "3d"}, figsize=(10,4))
 
 # Plot the surface.
-discharge_surf = ax1.plot_surface(plot_soc, (plot_p_r)/1000, efficiency_tot_discharge, cmap='viridis',
-                       linewidth=0, edgecolor='none', antialiased=True, alpha=0.75)
+discharge_surf = ax1.plot_surface(plot_soc, (plot_p_r)/1000, efficiency_tot_discharge, cmap=ListedColormap_,
+                       linewidth=0, edgecolor='none', antialiased=True, alpha=1)
+
+
 
 # format discharge plot persective
 ax1.azim = -45
@@ -116,8 +154,10 @@ ax1.set_zlim([1.0, 1.06])
 ax1.set_zticks(np.linspace(1, 1.06, 5))
 ax1.zaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
+# make the color map:
+# cmp = ListedColormap(['#f8cf01','#f8a87d', '#96b2c6', '#6e6e6e'])
 
-charge_surf = ax2.plot_surface(plot_soc, (plot_p_r*-1)/1000, efficiency_tot_charge, cmap='viridis',
+charge_surf = ax2.plot_surface(plot_soc, (plot_p_r*-1)/1000, efficiency_tot_charge, cmap=ListedColormap_,
                        linewidth=0, edgecolor='none', antialiased=True, alpha=0.75)
 
 # format discharge plot persective
@@ -153,7 +193,7 @@ ax2.zaxis._axinfo["grid"]['linewidth'] = 0.2
 plt.tight_layout()
 # plt.show()
 plt.draw()
-plt.savefig('filename.png', dpi=2400, bbox_inches='tight', transparent=True)
+plt.savefig('efficiency_plots.png', dpi=300, transparent=True)
 
 
 
