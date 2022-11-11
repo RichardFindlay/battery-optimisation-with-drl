@@ -31,11 +31,11 @@ colours = ['#f8cf01','#f8a87d', '#96b2c6', '#6e6e6e']
 
 # plot cumlative profits for milp and DQN together 
 for idx, dqn_mod in enumerate(cumsum_dqn_forecasted_prices.keys()):
-	plt.plot(cumsum_dqn_forecasted_prices[dqn_mod], color=colours[idx], linewidth=1.75)
+	plt.plot(cumsum_dqn_forecasted_prices[dqn_mod], color=colours[idx], linewidth=1.75, label=f"{legend_ls[idx]} forecasted prices")
 
 # plot cumlative profits for milp and DQN together 
 for idx, dqn_mod in enumerate(cumsum_dqn_true_prices.keys()):
-	plt.plot(cumsum_dqn_true_prices[dqn_mod], color=colours[idx], linewidth=1.75, linestyle='--', dashes=(10, 4), alpha=0.4)
+	plt.plot(cumsum_dqn_true_prices[dqn_mod], color=colours[idx], linewidth=1.75, linestyle='--', dashes=(10, 4), alpha=0.4, label=f"{legend_ls[idx]} true prices")
 
 
 
@@ -63,12 +63,17 @@ ax.set_xticks(np.arange(0, 8760, 1000))
 
 handle1, label1 = ax.get_legend_handles_labels()
 
-leg = ax.legend(handle1, label1, loc="upper left", fontsize=7, frameon=True)
+leg = ax.legend(handle1, label1, loc="upper left", fontsize=7, frameon=True, handlelength=4)
 leg.set_zorder(5)
+# ax.legend()
 
 frame = leg.get_frame()
 frame.set_facecolor('white')
 frame.set_edgecolor('white')
 
-plt.savefig('cumlative_profit_comparison.png', bbox_inches='tight', transparent=True, dpi=300)
+# plt.legend(legend_ls, fontsize=8)
+plt.savefig('cumlative_profit_comparison_forecasted.png', bbox_inches='tight', transparent=True, dpi=300)
+
 plt.show()
+
+
