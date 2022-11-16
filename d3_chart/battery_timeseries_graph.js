@@ -2,15 +2,15 @@
 function timeseries_graph(file, battery_capacity, battery_power) {
   console.log("ts graph loaded") }
 
-var filter_date = new Date(2015, 0, 1)
-var end_date = new Date(2015, 0, 8) 
+var filter_date = new Date(2018, 0, 1)
+var end_date = new Date(2018, 0, 8) 
 
 
 $("#calendar-tomorrow").flatpickr({
     mode: 'single',
-    maxDate: "2015-12-25",
-    minDate: "2015-1-1",
-    defaultDate: "2015-1-1",
+    maxDate: "2018-12-25",
+    minDate: "2017-1-1",
+    defaultDate: "2018-1-1",
     onChange: function(dates) {
 
             //  remove existing data
@@ -53,6 +53,7 @@ $("#calendar-tomorrow").flatpickr({
             // pass filtered data to graphs
             draw_bar_soc(dataset, startDate = filter_date, endDate = end_date)
             draw_bar_act(dataset, startDate = filter_date, endDate = end_date)
+            draw_price_line(dataset, startDate = filter_date, endDate = end_date)
 
             console.log(newDataDatePath)
 
@@ -419,18 +420,15 @@ svg_100.selectAll("line.horizontalGrid").data(y_input.ticks(4)).enter()
 
 
 // add y-axis labels
-svg_100.data(y_input.ticks(7)).enter()
-    .append("text")
-        .attr("class", "verticaltext_days")
-        .attr("opacity", 1.0)
-        .attr("transform", "translate(" + 100 + "," + 0 + ")")
-
+// svg_100.data(y_input.ticks(7)).enter()
+//     .append("text")
+//         .attr("class", "verticaltext_days")
+//         .attr("opacity", 1.0)
+//         .attr("transform", "translate(" + 100 + "," + 0 + ")")
 
 var slider = svg.append("g")
     .attr("class", "slider")
     .attr("transform", "translate(" + 0 + "," + 10 + ")");
-
-
 
 slider.append("line")
     .attr("class", "track")
@@ -905,11 +903,11 @@ d3.csv(file, prepare, function(data) {
   current_width = parseInt(d3.select('#test').style('width'), 10) 
 
   if (current_width <= 625) {
-    datefil = new Date(2015, 0, 4)
+    datefil = new Date(2018, 0, 4)
     x.domain([0, 72])
     x_ref.domain([0, 72])
   } else {
-    datefil = new Date(2015, 0, 8)
+    datefil = new Date(2018, 0, 8)
     x.domain([0, 168])
     x_ref.domain([0, 168])
   }
@@ -953,7 +951,7 @@ d3.csv(file, prepare, function(data) {
 
 
 
-  start_date = new Date(2015, 0, 1)
+  start_date = new Date(2018, 0, 1)
   newDataDatePath_int = dataset.filter(function(d) {
   return d.date >= start_date && d.date < datefil;
   })
@@ -1099,7 +1097,6 @@ d3.csv(file, prepare, function(data) {
   svg_Xdates_noon.lower()
   svg_Xdates_days.lower()
   svg_Xdates_days_main.lower()
-
 
   // console.log("intial")
   // console.log(length)
@@ -1263,11 +1260,19 @@ svg_input_Yaxis = svg_100.append("g")
         .attr("opacity", 0.4)
 
 
-function draw_price_line(data) {
+function draw_price_line(line_data, startDate = new Date(2018, 0, 1), endDate = new Date(2018, 0, 8)) {
+
+  // filtered data on date range
+  var newDataDate = line_data.filter(function(d) {
+    return (d.date >= startDate && d.date < endDate);
+  })
 
   // INPUT GRAPH
-  x_input.domain([0, d3.max(data, function(d) { return +d.id ; })])
-  y_input.domain([0, d3.max(data, function(d) { return +d.test_data; })])
+  x_input.domain([d3.min(newDataDate, function(d) { return +d.id ; }), d3.max(newDataDate, function(d) { return +d.id ; })])
+  y_input.domain([0, d3.max(newDataDate, function(d) { return +d.test_data; })])
+
+  console.log('-----------------------------------------------------')
+  console.log(d3.max(newDataDate, function(d) { return +d.test_data; }))
 
   // svg_100.selectAll(".line").remove();
 
@@ -1294,7 +1299,7 @@ var profit_label = svg_100.append("g").append("text")
 
 
 
-function draw_bar_soc(bar_data, startDate = new Date(2015, 0, 1), endDate = new Date(2015, 0, 8)) {
+function draw_bar_soc(bar_data, startDate = new Date(2018, 0, 1), endDate = new Date(2018, 0, 8)) {
 
   // filtered data on date range
   var newDataDate = bar_data.filter(function(d) {
@@ -1344,7 +1349,7 @@ function draw_bar_soc(bar_data, startDate = new Date(2015, 0, 1), endDate = new 
 }
 
 
-function draw_bar_act(bar_data, startDate = new Date(2015, 0, 1), endDate = new Date(2015, 0, 8)) {
+function draw_bar_act(bar_data, startDate = new Date(2018, 0, 1), endDate = new Date(2018, 0, 8)) {
 
   // console.log("gemrnpitnh=ewnrhenw[rw5enhg[w")
   // console.log(startDate)
@@ -1440,6 +1445,7 @@ function soc_bar_update(h) {
   profit_label.text("Profit 💰:" + formatter.format(profit))
 
   console.log(newData)
+  draw_price_line(newData, startDate = filter_date, endDate = end_date)
   draw_bar_soc(newData, startDate = filter_date, endDate = end_date);
   draw_bar_act(newData, startDate = filter_date, endDate = end_date);
 
@@ -1580,7 +1586,8 @@ if (current_width <= 625) {
   plot.select(".x.axis_soc").call(xAxis_bar_soc)
   plot.select(".y.axis_soc").call(yAxis_bar_soc)
 
-
+  
+  draw_price_line(newDataDatePath_int, startDate = filter_date, endDate = end_date)
   draw_bar_soc(newDataDatePath_int, startDate = filter_date, endDate = end_date)
 
   // update svg action-bar chart /////////////////////////////////////////////////////////
