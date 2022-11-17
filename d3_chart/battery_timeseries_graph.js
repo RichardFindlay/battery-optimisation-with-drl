@@ -113,7 +113,7 @@ $("#calendar-tomorrow").flatpickr({
             d3.select('.x.axis_dates_main_ticks .tick line:first-child').remove()
 
             // update profit text
-            charg_dis_prices = newDataDatePath.map(function(d) {return d.test_data * d.action * battery_power})
+            charg_dis_prices = newDataDatePath.map(function(d) {return d.price_data * d.action * battery_power})
             profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
             profit_label.text("Profit 💰:" + formatter.format(profit))
 
@@ -269,7 +269,7 @@ xAxis_dates_main= d3.axisBottom().scale(x_input_date).tickSizeOuter(0).tickValue
 input_line = d3.line()
                 .curve(d3.curveBasis)
                 .x(function(d) { return x_input(d.id) })
-                .y(function(d) { return y_input(d.test_data) })
+                .y(function(d) { return y_input(d.price_data) })
 
 
 
@@ -583,7 +583,7 @@ var info_line_time = svg_100.append("g").append("text")
 
   updateSubPath(subPathData);
 
-var bisect = d3.bisector(function(d) { return d.test_data; }).left;
+var bisect = d3.bisector(function(d) { return d.price_data; }).left;
 
 function getSum(total, num) {
   return total + num;
@@ -625,7 +625,7 @@ function mousemoved(current_coords) {
 
     mouse_coord = {
         "id": current_coords,
-        // "test_data": current_coords[1]
+        // "price_data": current_coords[1]
     }
     // console.log(mouse_coord.id)
   
@@ -636,12 +636,12 @@ function mousemoved(current_coords) {
     for (var i = 0; i < dataset_update.length; i++) {
         // console.log(dataset[i])
         var coord_id = dataset_update[i]['id'];
-        var coord_test_data = dataset_update[i]['test_data'];
-        // console.log(dataset[i]['test_data'])
+        var coord_price_data = dataset_update[i]['price_data'];
+        // console.log(dataset[i]['price_data'])
 
 
         if ((x_input(coord_id) <= mouse_coord.id)) {
-            subPathData[0].push({'id': coord_id, 'test_data': coord_test_data});
+            subPathData[0].push({'id': coord_id, 'price_data': coord_price_data});
         }
     }
     
@@ -669,13 +669,13 @@ function mousemoved(current_coords) {
     
 
     // console.log(x_input.invert(mouse_coord.id))
-    // console.log(y_input.invert(mouse_coord.test_data))
+    // console.log(y_input.invert(mouse_coord.price_data))
     mouse_coord.id = String(x_input.invert(mouse_coord.id))
-    mouse_coord.test_data = String(y_input.invert(pos.y))
+    mouse_coord.price_data = String(y_input.invert(pos.y))
     subPathData[0].push(mouse_coord);
 
     // console.log(mouse_coord.id )
-    // console.log(mouse_coord.test_data)
+    // console.log(mouse_coord.price_data)
     // console.log(subPathData)
 
 
@@ -741,15 +741,15 @@ function info_line(cur_pos=null) {
     for (var i = 0; i < dataset_update.length; i++) {
         // console.log(dataset[i])
         var coord_id = dataset_update[i]['id'];
-        var coord_test_data1 = dataset_update[i]['action'] * 10; // 10MW battery power (baseline)
-        var coord_test_data2 = dataset_update[i]['soc'] * 20; // 20MWh battery capacity (baseline)
-        var coord_test_data3 = dataset_update[i]['date'];
-        var coord_test_data4 = dataset_update[i]['test_data'];
-        // console.log(dataset[i]['test_data'])
+        var coord_price_data1 = dataset_update[i]['action'] * 10; // 10MW battery power (baseline)
+        var coord_price_data2 = dataset_update[i]['soc'] * 20; // 20MWh battery capacity (baseline)
+        var coord_price_data3 = dataset_update[i]['date'];
+        var coord_price_data4 = dataset_update[i]['price_data'];
+        // console.log(dataset[i]['price_data'])
 
 
         if ((x_input(coord_id) <= x_ + 5)) {
-            bar_data.push({'id': coord_id, 'action': coord_test_data1, 'soc': coord_test_data2, 'date': d3.timeFormat("%H:%M %p")(coord_test_data3), 'test_data': coord_test_data4});
+            bar_data.push({'id': coord_id, 'action': coord_price_data1, 'soc': coord_price_data2, 'date': d3.timeFormat("%H:%M %p")(coord_price_data3), 'price_data': coord_price_data4});
         }
     }
           // var test = parseFloat(bar_data[bar_data.length-1]['action'])
@@ -757,8 +757,8 @@ function info_line(cur_pos=null) {
 
           //   most_recent = {
           //       "id": coord_id,
-          //       'action': coord_test_data1
-          //       'soc': coord_test_data2
+          //       'action': coord_price_data1
+          //       'soc': coord_price_data2
           //   }
 
           // most_recent.id = String(x_input.invert(mouse_coord.id))
@@ -784,7 +784,7 @@ function info_line(cur_pos=null) {
             .style("opacity", "1")
 
           info_line_text
-            .text('Price: ' + formatter.format(bar_data[bar_data.length-1]['test_data']))
+            .text('Price: ' + formatter.format(bar_data[bar_data.length-1]['price_data']))
             .attr('x', pos.x + 5)
             .attr('y', 8)
             .style("opacity", "1")
@@ -943,7 +943,7 @@ d3.csv(file, prepare, function(data) {
   draw_bar_act(datanew);
 
 
-  charg_dis_prices = datanew.map(function(d) {return d.test_data * d.action * battery_power})
+  charg_dis_prices = datanew.map(function(d) {return d.price_data * d.action * battery_power})
   profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
   profit_label.text("Profit 💰:" + formatter.format(profit))
   // svg_100.select("profit_label").text("Profit111 💰:" + formatter.format(profit))
@@ -1133,7 +1133,7 @@ d3.csv(file, prepare, function(data) {
 
 function prepare(d) {
   d.id = d.id;
-  d.test_data = d.test_data
+  d.price_data = d.price_data
   d.date = d3.timeParse("%d/%m/%Y %H:%M")(d.date)
   d.action = d.action;
   return d;
@@ -1269,10 +1269,10 @@ function draw_price_line(line_data, startDate = new Date(2018, 0, 1), endDate = 
 
   // INPUT GRAPH
   x_input.domain([d3.min(newDataDate, function(d) { return +d.id ; }), d3.max(newDataDate, function(d) { return +d.id ; })])
-  // y_input.domain([0, d3.max(newDataDate, function(d) { return +d.test_data; })])
+  // y_input.domain([0, d3.max(newDataDate, function(d) { return +d.price_data; })])
 
   // y_input.range([height, 0]);
-  // y_input.domain([0, d3.max(newDataDate, function(d){return +d.test_data;})])
+  // y_input.domain([0, d3.max(newDataDate, function(d){return +d.price_data;})])
   // yAxis.scale(y_input);
 
   // // svg_100.selectAll(".line").remove();
@@ -1443,7 +1443,7 @@ function soc_bar_update(h) {
   }
 
 
-  charg_dis_prices = newData.map(function(d) {return d.test_data * d.action * battery_power})
+  charg_dis_prices = newData.map(function(d) {return d.price_data * d.action * battery_power})
   profit = charg_dis_prices.reduce(getSum, 0.0).toFixed(2)
   profit_label.text("Profit 💰:" + formatter.format(profit))
 
