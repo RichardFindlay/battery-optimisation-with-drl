@@ -51,9 +51,10 @@ $("#calendar-tomorrow").flatpickr({
              xAxis_dates_hours.scale(x_dates)
 
             // pass filtered data to graphs
+            draw_price_line(dataset, startDate = filter_date, endDate = end_date)
             draw_bar_soc(dataset, startDate = filter_date, endDate = end_date)
             draw_bar_act(dataset, startDate = filter_date, endDate = end_date)
-            draw_price_line(dataset, startDate = filter_date, endDate = end_date)
+            
 
             console.log(newDataDatePath)
 
@@ -107,7 +108,6 @@ $("#calendar-tomorrow").flatpickr({
                 .attr("transform", "translate(" + current_width/14 + "," + (-height+20) + ")")
                 .select(".domain").remove();
             }
-
 
             //  remove intial tick for presentation
             d3.select('.x.axis_dates_main_ticks .tick line:first-child').remove()
@@ -257,7 +257,7 @@ x_input_date = d3.scaleTime()
 
 
 y_input = d3.scaleLinear()
-  // .domain([0, 0.5])
+  .domain([0, 100])
   .range([height, 0]);
 
 xAxis = d3.axisBottom().scale(x_input).tickSizeOuter(0).tickValues([]);
@@ -420,11 +420,11 @@ svg_100.selectAll("line.horizontalGrid").data(y_input.ticks(4)).enter()
 
 
 // add y-axis labels
-// svg_100.data(y_input.ticks(7)).enter()
-//     .append("text")
-//         .attr("class", "verticaltext_days")
-//         .attr("opacity", 1.0)
-//         .attr("transform", "translate(" + 100 + "," + 0 + ")")
+svg_100.data(y_input.ticks(7)).enter()
+    .append("text")
+        .attr("class", "verticaltext_days")
+        .attr("opacity", 1.0)
+        .attr("transform", "translate(" + 100 + "," + 0 + ")")
 
 var slider = svg.append("g")
     .attr("class", "slider")
@@ -1269,12 +1269,15 @@ function draw_price_line(line_data, startDate = new Date(2018, 0, 1), endDate = 
 
   // INPUT GRAPH
   x_input.domain([d3.min(newDataDate, function(d) { return +d.id ; }), d3.max(newDataDate, function(d) { return +d.id ; })])
-  y_input.domain([0, d3.max(newDataDate, function(d) { return +d.test_data; })])
+  // y_input.domain([0, d3.max(newDataDate, function(d) { return +d.test_data; })])
 
-  console.log('-----------------------------------------------------')
-  console.log(d3.max(newDataDate, function(d) { return +d.test_data; }))
+  // y_input.range([height, 0]);
+  // y_input.domain([0, d3.max(newDataDate, function(d){return +d.test_data;})])
+  // yAxis.scale(y_input);
 
-  // svg_100.selectAll(".line").remove();
+  // // svg_100.selectAll(".line").remove();
+  // svg_100.select(".y.axis").call(yAxis)
+
 
 
 }
@@ -1445,7 +1448,6 @@ function soc_bar_update(h) {
   profit_label.text("Profit 💰:" + formatter.format(profit))
 
   console.log(newData)
-  draw_price_line(newData, startDate = filter_date, endDate = end_date)
   draw_bar_soc(newData, startDate = filter_date, endDate = end_date);
   draw_bar_act(newData, startDate = filter_date, endDate = end_date);
 
@@ -1586,7 +1588,6 @@ if (current_width <= 625) {
   plot.select(".x.axis_soc").call(xAxis_bar_soc)
   plot.select(".y.axis_soc").call(yAxis_bar_soc)
 
-  
   draw_price_line(newDataDatePath_int, startDate = filter_date, endDate = end_date)
   draw_bar_soc(newDataDatePath_int, startDate = filter_date, endDate = end_date)
 
