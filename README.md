@@ -1,6 +1,9 @@
 # Optimising grid-scale lithium-ion batteries with deep reinforcement learning (DRL)
 
-Blog post write-up availiable at: https://richardfindlay.co.uk/deep-reinforcement-learning-for-grid-scale-lithium-ion-battery-optimisation-3
 ![til](./visualisations/d3_interactive_plot_screenshot.png)
+*screenshot of interactive d3 plot illustrating timeseries performance of DQN* 
 
-## Description
+## Project Description
+Blog post: https://richardfindlay.co.uk/deep-reinforcement-learning-for-grid-scale-lithium-ion-battery-optimisation-3
+
+### Project Description
