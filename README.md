@@ -3,9 +3,7 @@
 
 <p align="center">
   <img src="https://github.com/RichardFindlay/battery-optimisation-with-drl/blob/main/visualisations/d3_interactive_plot_screenshot.png" />
-</p>
-<p align="center">
-	screenshot of interactive d3.js plot illustrating timeseries performance of Double-Dueling DQN
+  screenshot of interactive d3.js plot illustrating timeseries performance of Double-Dueling DQN
 </p>
 
 ### Project Description :open_book::
