@@ -10,7 +10,7 @@ The repository demonstrate the capabilities of data driven techniques by investi
 ### Performance Overview :racing_car::
 Vanilla, Double-Dueling and a Noisy Network DQN was explored as part of this study, integrating the effects of battery degradation and dynamic efficiency into the reward function to produce a pratical foundation to the novel optimisation. For comparison the repository also has a Mixed Integer Linear Programming (MILP) optimisation, with the cumulative profits for the inference year (2019) illustrated below. 
 
-![til](./visualisations/cumulative_profit_comparison.png)
+![til](./visualisations/cumulative_profit_comparison_markup.png)
 
 The Double-Dueling DQN marginally prevailed as the best optimisation technique in the energy arbitrage problem, with even the vanilla DQN agent shown significant uplift over other techniques such as MILP, the oppurtunties for DRL to such a problem is vast, epseically considering the minimal hyper-parameter tuning explored for this novel investigation.
 
@@ -20,7 +20,7 @@ Install python dependencies for repository:
 $ pip install -r requirements.txt
 ```
 
-Training for all models was conducted on a Google Colab Pro+ subscription.
+:weight_lifting: Training for all models was conducted on a Google Colab Pro+ subscription.
 
 ###  Further Work :telescope:: 
 - [ ] Investigate oppurtunties for stackable revenue streams (Balancing Mechanism, FFR etc.) to be integrated into DQN optimisation.
