@@ -30,6 +30,7 @@ $ pip install -r requirements.txt
 
 ### Opportunities & To Do :test_tube:: 
 - [ ] Code links and references to be validated since re-organisation.
+- [ ] Clean code, especially interactive d3 plot.
 - [ ] Expanding train-set out-with 1-year (2018) could promote performance.
 - [ ] Further validate performance of Pytorch forecasting model and it's integration into the RL environment.
 
