@@ -30,7 +30,7 @@ $ pip install -r requirements.txt
 - [ ] Opting for a different DRL architectures could allow for the adoption of a continuous action space which could bring about further opportunities for refined performance.
 - [ ] Pursuit of temporally higher resolution data to better capture market volatility and arbitrage opportunities for batter
 
-### Opportunities & To Do :test_tube:: 
+### Oppurtunities & To Do :test_tube:: 
 - [ ] Code links and references to be validated since re-organisation.
 - [ ] Clean code, especially interactive d3 plot.
 - [ ] Expanding train-set out-with 1-year (2018) could promote performance.
